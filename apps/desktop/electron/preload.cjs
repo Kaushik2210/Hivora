@@ -1,16 +1,16 @@
-import { contextBridge, ipcRenderer } from 'electron'
+const { contextBridge, ipcRenderer } = require('electron')
 
 contextBridge.exposeInMainWorld('electronAPI', {
-  apiRequest: (options: { method: string; path: string; body?: unknown; token?: string }) =>
+  apiRequest: (options) =>
     ipcRenderer.invoke('api:request', options),
   installUpdate: () => ipcRenderer.invoke('update:install'),
-  onUpdateAvailable: (cb: (info: any) => void) => {
+  onUpdateAvailable: (cb) => {
     ipcRenderer.on('update-available', (_, info) => cb(info))
   },
-  onUpdateProgress: (cb: (progress: any) => void) => {
+  onUpdateProgress: (cb) => {
     ipcRenderer.on('update-progress', (_, progress) => cb(progress))
   },
-  onUpdateDownloaded: (cb: () => void) => {
+  onUpdateDownloaded: (cb) => {
     ipcRenderer.on('update-downloaded', () => cb())
   },
 })
