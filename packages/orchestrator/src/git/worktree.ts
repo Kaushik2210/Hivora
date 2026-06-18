@@ -12,14 +12,14 @@ export class GitWorktreeManager {
     this.repoPath = repoPath;
   }
 
-  async createWorktree(agentId: string, baseBranch: string = 'main'): Promise<{ path: string; branch: string }> {
+  async createWorktree(agentId: string, baseBranch: string = 'HEAD'): Promise<{ path: string; branch: string }> {
     const branchName = `agent-${agentId}-${Date.now()}`;
     const worktreePath = path.join(this.repoPath, '.worktrees', agentId);
 
     await fs.ensureDir(path.join(this.repoPath, '.worktrees'));
 
     try {
-      await execAsync(`git worktree add -b ${branchName} ${worktreePath} ${baseBranch}`, { cwd: this.repoPath });
+      await execAsync(`git worktree add -b "${branchName}" "${worktreePath}" "${baseBranch}"`, { cwd: this.repoPath });
       return { path: worktreePath, branch: branchName };
     } catch (error) {
       console.error('Failed to create worktree:', error);
@@ -30,7 +30,7 @@ export class GitWorktreeManager {
   async removeWorktree(agentId: string): Promise<void> {
     const worktreePath = path.join(this.repoPath, '.worktrees', agentId);
     try {
-      await execAsync(`git worktree remove --force ${worktreePath}`, { cwd: this.repoPath });
+      await execAsync(`git worktree remove --force "${worktreePath}"`, { cwd: this.repoPath });
     } catch (error) {
       console.error('Failed to remove worktree:', error);
       throw error;

@@ -229,8 +229,23 @@ model Subscription {
   cancelAtPeriodEnd Boolean          @default(false)
   createdAt       DateTime           @default(now())
   updatedAt       DateTime           @updatedAt
+  usage           SubscriptionUsage?
 
   @@index([tier])
+}
+
+model SubscriptionUsage {
+  id                    String       @id @default(cuid())
+  subscriptionId        String       @unique
+  subscription          Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  currentConcurrentAgents Int        @default(0)
+  locksUsedToday        Int          @default(0)
+  projectsInOrg         Int          @default(0)
+  teamMembers           Int          @default(0)
+  lastResetDate         DateTime     @default(now())
+  updatedAt             DateTime     @updatedAt
+
+  @@index([subscriptionId])
 }
 
 model EmailVerificationToken {

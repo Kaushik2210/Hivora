@@ -1,13 +1,14 @@
 {
   "name": "@hivora/desktop",
   "version": "0.1.0",
+  "description": "Hivora Desktop Application",
+  "author": "Hivora Team",
   "private": true,
-  "type": "module",
-  "main": "dist-electron/main.js",
+  "main": "dist-electron/main.cjs",
   "scripts": {
     "dev": "concurrently \"npm run dev:vite\" \"npm run dev:electron\"",
     "dev:vite": "vite",
-    "dev:electron": "tsc -p electron/tsconfig.json && electron dist-electron/main.js",
+    "dev:electron": "tsc -p electron/tsconfig.json && node electron/rename-cjs.js && electron dist-electron/main.cjs",
     "build": "tsc && vite build && tsc -p electron/tsconfig.json && electron-builder",
     "build:win": "npm run build -- --win",
     "build:mac": "npm run build -- --mac",
@@ -29,7 +30,7 @@
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^4.2.1",
     "concurrently": "^8.2.2",
-    "electron": "^29.0.0",
+    "electron": "29.0.0",
     "electron-builder": "^24.12.0",
     "typescript": "^5.4.5",
     "vite": "^5.1.0"

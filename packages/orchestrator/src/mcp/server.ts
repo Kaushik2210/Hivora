@@ -7,6 +7,7 @@ import {
   McpError,
 } from '@modelcontextprotocol/sdk/types.js';
 import type { ILockStore } from '../lock/types';
+import { applyChangeWithLock } from '../operations/applyChange';
 
 export interface OrchestratorMcpServerOptions {
   lockStore: ILockStore;
@@ -78,6 +79,21 @@ export class OrchestratorMcpServer {
             required: ['file', 'symbol', 'agentId'],
           },
         },
+        {
+          name: 'apply_change',
+          description: 'Apply a change under lock using a per-agent worktree. Arguments: file, symbol, agentId, patch (string or omitted).',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              file: { type: 'string' },
+              symbol: { type: 'string' },
+              agentId: { type: 'string' },
+              // optional: a small replacement string to append or a full file content
+              patchText: { type: 'string' },
+            },
+            required: ['file', 'symbol', 'agentId'],
+          },
+        },
       ],
     }));
 
@@ -108,6 +124,23 @@ export class OrchestratorMcpServer {
             throw new McpError(ErrorCode.InvalidParams, 'Missing required arguments');
           }
           const result = await this.lockStore.unlock(file, symbol, agentId);
+          return {
+            content: [{ type: 'text', text: JSON.stringify(result) }],
+            isError: !result.success,
+          };
+        }
+
+        case 'apply_change': {
+          const { file, symbol, agentId, patchText } = request.params.arguments as any;
+          if (!file || !symbol || !agentId) {
+            throw new McpError(ErrorCode.InvalidParams, 'Missing required arguments');
+          }
+          const repoPath = process.cwd();
+          const patchFn = (current: string) => {
+            if (typeof patchText === 'string') return patchText;
+            return current + `\n// patched by ${agentId} [${symbol}]`;
+          };
+          const result = await applyChangeWithLock({ repoPath, lockStore: this.lockStore, agentId, file, symbol, patch: patchFn });
           return {
             content: [{ type: 'text', text: JSON.stringify(result) }],
             isError: !result.success,

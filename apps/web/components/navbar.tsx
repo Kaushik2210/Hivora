@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { brand } from '@hivora/shared/brand'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Menu, X } from 'lucide-react'
 
 const links = [
@@ -13,12 +13,21 @@ const links = [
 
 export function Navbar() {
   const [open, setOpen] = useState(false)
+  const [scrolled, setScrolled] = useState(false)
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+    const onScroll = () => setScrolled(window.scrollY > 10)
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
 
   return (
-    <nav className="sticky top-0 z-50 border-b border-[var(--color-border)] bg-[var(--color-surface)]/80 backdrop-blur-lg">
+    <nav className={`sticky top-0 z-50 border-b bg-[var(--color-surface)]/80 backdrop-blur-lg transition-shadow duration-300 ${scrolled ? 'border-[var(--color-border)] shadow-lg' : 'border-transparent'}`}>
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         <Link href="/" className="flex items-center gap-2 text-xl font-bold tracking-tight">
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--color-brand)] text-sm font-bold text-white">H</span>
+          <img src="/logo.svg" alt={brand.displayName} className="h-8 w-8" />
           {brand.displayName}
         </Link>
 

@@ -1,0 +1,6 @@
+export { HowItWorks } from './HowItWorks'
+export { Demo } from './Demo'
+export { Stats } from './Stats'
+export { Testimonials } from './Testimonials'
+export { FAQ } from './FAQ'
+export { TrustLogos } from './TrustLogos'

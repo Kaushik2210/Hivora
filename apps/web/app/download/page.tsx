@@ -60,6 +60,33 @@ export default function DownloadPage() {
           </div>
         </div>
 
+        {/* System Requirements */}
+        <div className="mt-8 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-6">
+          <h3 className="text-lg font-semibold">System Requirements</h3>
+          <div className="mt-4 grid gap-6 sm:grid-cols-2">
+            <div>
+              <h4 className="text-sm font-semibold text-[var(--color-brand)]">Windows</h4>
+              <ul className="mt-2 space-y-1.5 text-sm text-[var(--color-text-muted)]">
+                <li>Windows 10 or later (64-bit)</li>
+                <li>8 GB RAM (16 GB recommended)</li>
+                <li>500 MB disk space</li>
+                <li>Internet connection for cloud features</li>
+                <li>Node.js 18+ (for CLI mode)</li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="text-sm font-semibold text-[var(--color-brand)]">macOS</h4>
+              <ul className="mt-2 space-y-1.5 text-sm text-[var(--color-text-muted)]">
+                <li>macOS 12 (Monterey) or later</li>
+                <li>Apple Silicon or Intel x64</li>
+                <li>8 GB RAM (16 GB recommended)</li>
+                <li>500 MB disk space</li>
+                <li>Internet connection for cloud features</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
         <div className="mt-8 text-center">
           <p className="text-sm text-[var(--color-text-muted)]">
             Already have an account?{' '}

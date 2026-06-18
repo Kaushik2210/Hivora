@@ -9,6 +9,7 @@ import { authRouter } from './routes/auth.js';
 import { orgRouter } from './routes/organizations.js';
 import { createProjectRouter } from './routes/projects.js';
 import { createLockRouter } from './routes/locks.js';
+import { agentRouter } from './routes/agents.js';
 import { createRealtimeServer } from './realtime/index.js';
 import { notFoundHandler, errorHandler } from './middleware/error.js';
 import { apiLimiter } from './middleware/rateLimit.js';
@@ -39,6 +40,7 @@ app.use('/api/auth', apiLimiter, authRouter);
 app.use('/api', apiLimiter, orgRouter);
 app.use('/api', apiLimiter, createProjectRouter(io));
 app.use('/api', apiLimiter, createLockRouter(io));
+app.use('/api/agents', apiLimiter, agentRouter);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

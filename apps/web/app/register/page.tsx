@@ -33,7 +33,7 @@ export default function RegisterPage() {
     <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center px-4 py-12">
       <div className="w-full max-w-sm">
         <div className="text-center">
-          <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--color-brand)] text-lg font-bold text-white">H</div>
+          <img src="/logo.svg" alt={brand.displayName} className="mx-auto h-10 w-10" />
           <h1 className="mt-4 text-2xl font-bold tracking-tight">Create your account</h1>
           <p className="mt-2 text-sm text-[var(--color-text-muted)]">Start orchestrating with {brand.displayName}</p>
         </div>

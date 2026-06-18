@@ -70,6 +70,48 @@ export const config = {
     apiWindowMs: int('RATE_LIMIT_API_WINDOW_MS', 60 * 1000),
     apiMax: int('RATE_LIMIT_API_MAX', 120),
   },
+
+  ai: {
+    providers: (process.env.AI_PROVIDERS ?? 'openai').split(',').map((p) => p.trim()),
+    openai: {
+      apiKey: process.env.OPENAI_API_KEY || undefined,
+      model: process.env.OPENAI_MODEL || 'gpt-4-turbo',
+    },
+    anthropic: {
+      apiKey: process.env.ANTHROPIC_API_KEY || undefined,
+      model: process.env.ANTHROPIC_MODEL || 'claude-opus-4-1',
+    },
+    cohere: {
+      apiKey: process.env.COHERE_API_KEY || undefined,
+      model: process.env.COHERE_MODEL || 'command-r-plus',
+    },
+  },
+
+  subscription: {
+    tiers: {
+      free: {
+        name: 'Free',
+        maxConcurrentAgents: 2,
+        maxLocksPerDay: 100,
+        maxProjectsPerOrg: 5,
+        maxTeamMembers: 3,
+      },
+      pro: {
+        name: 'Pro',
+        maxConcurrentAgents: 10,
+        maxLocksPerDay: 10000,
+        maxProjectsPerOrg: 50,
+        maxTeamMembers: 20,
+      },
+      enterprise: {
+        name: 'Enterprise',
+        maxConcurrentAgents: -1,
+        maxLocksPerDay: -1,
+        maxProjectsPerOrg: -1,
+        maxTeamMembers: -1,
+      },
+    },
+  },
 } as const;
 
 export type AppConfig = typeof config;

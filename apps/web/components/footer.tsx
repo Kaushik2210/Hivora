@@ -5,9 +5,9 @@ export function Footer() {
     <footer className="border-t border-[var(--color-border)] bg-[var(--color-surface-elevated)]">
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
         <div className="grid gap-8 sm:grid-cols-3">
-          <div>
+          <div className="sm:col-span-1">
             <div className="flex items-center gap-2 text-lg font-bold">
-              <span className="flex h-7 w-7 items-center justify-center rounded-md bg-[var(--color-brand)] text-xs font-bold text-white">H</span>
+              <img src="/logo.svg" alt={brand.displayName} className="h-7 w-7" />
               {brand.displayName}
             </div>
             <p className="mt-2 text-sm text-[var(--color-text-muted)]">{brand.tagline}</p>
@@ -15,16 +15,16 @@ export function Footer() {
           <div>
             <h4 className="mb-3 text-sm font-semibold">Product</h4>
             <div className="space-y-2 text-sm text-[var(--color-text-muted)]">
-              <a href="/pricing" className="block hover:text-[var(--color-text)]">Pricing</a>
-              <a href="/download" className="block hover:text-[var(--color-text)]">Download</a>
-              <a href="/docs" className="block hover:text-[var(--color-text)]">Docs</a>
+              <a href="/pricing" className="block hover:text-[var(--color-text)] transition-colors">Pricing</a>
+              <a href="/download" className="block hover:text-[var(--color-text)] transition-colors">Download</a>
+              <a href="/contact" className="block hover:text-[var(--color-text)] transition-colors">Contact Sales</a>
             </div>
           </div>
           <div>
             <h4 className="mb-3 text-sm font-semibold">Legal</h4>
             <div className="space-y-2 text-sm text-[var(--color-text-muted)]">
-              <span className="block">Privacy Policy</span>
-              <span className="block">Terms of Service</span>
+              <a href="/privacy" className="block hover:text-[var(--color-text)] transition-colors">Privacy Policy</a>
+              <a href="/terms" className="block hover:text-[var(--color-text)] transition-colors">Terms of Service</a>
             </div>
           </div>
         </div>
