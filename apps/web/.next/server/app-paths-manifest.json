@@ -3,7 +3,6 @@
   "/page": "app/page.js",
   "/terms/page": "app/terms/page.js",
   "/download/page": "app/download/page.js",
-  "/login/page": "app/login/page.js",
   "/contact/page": "app/contact/page.js",
   "/pricing/page": "app/pricing/page.js"
 }

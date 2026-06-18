@@ -14,6 +14,11 @@
 html { scroll-behavior: smooth; color-scheme: dark; }
 body { background: var(--color-surface); color: var(--color-text); font-family: 'Inter', system-ui, sans-serif; }
 
+/* Prevent text selection on UI elements */
+nav, button, [role="button"], .select-none { user-select: none; }
+h1, h2, h3, h4, h5, h6 { user-select: none; }
+.badge, .tag, .label { user-select: none; }
+
 /* === Reusable Animation Keyframes === */
 
 @keyframes fade-in-up {

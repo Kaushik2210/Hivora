@@ -128,10 +128,7 @@ export function Demo() {
                     displayedEvents.map((event, idx) => (
                       <div
                         key={idx}
-                        className="px-4 py-2 border-b border-[var(--color-border)] flex items-start gap-3 hover:bg-[var(--color-surface)] transition-colors"
-                        style={{
-                          animation: `slideIn 0.3s ease-out`,
-                        }}
+                        className="px-4 py-2 border-b border-[var(--color-border)] flex items-start gap-3 hover:bg-[var(--color-surface)] transition-colors animate-in fade-in slide-in-from-left-2 duration-300"
                       >
                         <span className="text-[var(--color-text-muted)]">{event.time}</span>
                         <span style={{ color: agents.find(a => a.name === event.agent)?.color || '#fff' }} className="font-semibold w-12">
@@ -148,54 +145,6 @@ export function Demo() {
                       </div>
                     ))
                   )}
-                </div>
-              </div>
-            </div>
-          </div>
-        </ScrollAnimation>
-      </div>
-
-      <style>{`
-        @keyframes slideIn {
-          from {
-            opacity: 0;
-            transform: translateX(-10px);
-          }
-          to {
-            opacity: 1;
-            transform: translateX(0);
-          }
-        }
-      `}</style>
-
-                <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="text-sm font-semibold">Orchestration Timeline</div>
-                    <div className="text-xs text-[var(--color-text-muted)]">Realtime</div>
-                  </div>
-                  <ul className="space-y-3">
-                    <li className="flex items-start gap-3">
-                      <div className="w-2 h-2 rounded-full bg-green-500 mt-1" />
-                      <div>
-                        <div className="text-sm">Claude merged feat/auth</div>
-                        <div className="text-xs text-[var(--color-text-muted)]">2 minutes ago</div>
-                      </div>
-                    </li>
-                    <li className="flex items-start gap-3">
-                      <div className="w-2 h-2 rounded-full bg-yellow-400 mt-1 animate-pulse" />
-                      <div>
-                        <div className="text-sm">Cursor building dashboard UI</div>
-                        <div className="text-xs text-[var(--color-text-muted)]">Live</div>
-                      </div>
-                    </li>
-                    <li className="flex items-start gap-3">
-                      <div className="w-2 h-2 rounded-full bg-blue-400 mt-1" />
-                      <div>
-                        <div className="text-sm">Copilot configured CI pipeline</div>
-                        <div className="text-xs text-[var(--color-text-muted)]">5 minutes ago</div>
-                      </div>
-                    </li>
-                  </ul>
                 </div>
               </div>
             </div>

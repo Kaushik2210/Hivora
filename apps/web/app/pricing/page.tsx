@@ -78,16 +78,23 @@ export default function PricingPage() {
                   </li>
                 ))}
               </ul>
-              <a
-                href="/register"
-                className={`mt-8 flex w-full items-center justify-center rounded-lg px-4 py-2.5 text-sm font-semibold transition-all ${
-                  tier.popular
-                    ? 'bg-[var(--color-brand)] text-white hover:brightness-110'
-                    : 'border border-[var(--color-border)] text-[var(--color-text)] hover:bg-[var(--color-surface-elevated)]'
-                }`}
-              >
-                Get Started
-              </a>
+              <div className="mt-8 space-y-2">
+                <a
+                  href="/register"
+                  className={`flex w-full items-center justify-center rounded-lg px-4 py-2.5 text-sm font-semibold transition-all ${
+                    tier.popular
+                      ? 'bg-[var(--color-brand)] text-white hover:brightness-110'
+                      : 'border border-[var(--color-border)] text-[var(--color-text)] hover:bg-[var(--color-surface-elevated)]'
+                  }`}
+                >
+                  Get Started
+                </a>
+                {tier.name === 'Free' && (
+                  <a href="/free-tier" className="flex w-full items-center justify-center rounded-lg px-4 py-2.5 text-xs font-semibold text-[var(--color-brand)] hover:underline">
+                    Learn How to Maximize Free
+                  </a>
+                )}
+              </div>
             </div>
           ))}
         </div>
