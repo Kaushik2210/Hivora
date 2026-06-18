@@ -1,0 +1,15 @@
+@import "tailwindcss";
+
+:root {
+  --color-brand: #7c3aed;
+  --color-brand-dark: #5b21b6;
+  --color-brand-light: #a78bfa;
+  --color-surface: #0f0f1a;
+  --color-surface-elevated: #1a1a2e;
+  --color-border: #2a2a3e;
+  --color-text: #f1f1f6;
+  --color-text-muted: #8888a0;
+}
+
+html { scroll-behavior: smooth; color-scheme: dark; }
+body { background: var(--color-surface); color: var(--color-text); font-family: 'Inter', system-ui, sans-serif; }
