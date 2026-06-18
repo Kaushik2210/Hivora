@@ -23,18 +23,24 @@ Masaüstü uygulaması kullanarak yerel veya bulut modunda AI agent'lerini koord
 
 ## 🚀 Kurulum
 
-### Önceden Derlenmiş Installer
+### 📥 Önceden Derlenmiş Installer İndir
 
-```bash
-# Windows
-Hivora Setup 0.1.0.exe
+#### Windows
+- **File**: `Hivora Setup 0.1.0.exe` (76 MB)
+- **Download**: [GitHub Releases](https://github.com/hivora/desktop-releases/releases)
+- **Installation**: Çalıştır → Next → Finish
+- **Warning**: SmartScreen uyarısı alırsa "More info" → "Run anyway" tıkla
 
-# macOS (Coming Soon)
-Hivora-0.1.0.dmg
-```
+#### macOS
+- **File**: `Hivora-0.1.0.dmg` (Intel & Apple Silicon)
+- **Download**: [GitHub Releases](https://github.com/hivora/desktop-releases/releases)
+- **Installation**: DMG'yi aç → Drag Hivora to Applications
+- **Warning**: Gatekeeper uyarısı alırsa Right-click → Open tıkla
 
-Installer'ı çalıştırın ve adımları takip edin. Windows SmartScreen uyarısı alırsa:
-- "More info" → "Run anyway" tıklayın
+#### Linux
+- **File**: `Hivora-0.1.0.AppImage`
+- **Download**: [GitHub Releases](https://github.com/hivora/desktop-releases/releases)
+- **Installation**: `chmod +x Hivora-0.1.0.AppImage && ./Hivora-0.1.0.AppImage`
 
 ### Geliştirme için Kurulum
 
@@ -49,15 +55,32 @@ npm install
 # Development modda çalıştır
 npm run dev
 
-# Production build
+# Production build (mevcut OS için)
 npm run build
-
-# Windows installer oluştur
-npm run build:win
-
-# macOS DMG oluştur
-npm run build:mac
 ```
+
+### Platform-Specific Build
+
+#### Windows'ta Windows Installer Yap
+```bash
+npm run build:win
+# Output: release/Hivora Setup 0.1.0.exe
+```
+
+#### Mac'te macOS Installer Yap
+```bash
+npm run build:mac
+# Output: release/Hivora-0.1.0.dmg
+# Not: Notarization gerekli prodüksyon için
+```
+
+#### Linux'ta AppImage Yap
+```bash
+npm run build:linux
+# Output: release/Hivora-0.1.0.AppImage
+```
+
+**Not**: Her platform'da build yapabilmek için o platform'da çalıştırman gerekir (cross-compilation sınırlama).
 
 ## 🔧 Yapılandırma
 

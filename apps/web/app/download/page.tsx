@@ -5,6 +5,11 @@ import Link from 'next/link'
 
 export const metadata: Metadata = { title: 'Download' }
 
+const downloadLinks = {
+  windows: 'https://github.com/hivora/desktop-releases/releases/download/v0.1.0/Hivora-Setup-0.1.0.exe',
+  macos: 'https://github.com/hivora/desktop-releases/releases/download/v0.1.0/Hivora-0.1.0.dmg',
+}
+
 export default function DownloadPage() {
   const requirements = {
     windows: [
@@ -27,13 +32,15 @@ export default function DownloadPage() {
         <div className="text-center">
           <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Download {brand.displayName}</h1>
           <p className="mt-4 text-lg text-[var(--color-text-muted)]">
-            Choose your platform. Requires an account to unlock cloud features.
+            Choose your platform and start orchestrating AI agents today.
           </p>
         </div>
 
         <div className="mt-16 grid gap-6 sm:grid-cols-2">
           <a
-            href="#"
+            href={downloadLinks.windows}
+            target="_blank"
+            rel="noopener noreferrer"
             className="group flex flex-col items-center rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-8 text-center transition-all hover:border-[var(--color-brand)] hover:bg-[var(--color-brand)]/5"
           >
             <div className="h-16 w-16 rounded-lg bg-[var(--color-brand)]/20 flex items-center justify-center">
@@ -42,7 +49,7 @@ export default function DownloadPage() {
             <h2 className="mt-4 text-xl font-bold">Windows</h2>
             <p className="mt-1 text-sm text-[var(--color-text-muted)]">Hivora Setup 0.1.0.exe (76 MB)</p>
             <button className="mt-4 inline-flex items-center gap-2 rounded-lg bg-[var(--color-brand)] px-5 py-2 text-sm font-semibold text-white transition-all hover:brightness-110 active:scale-95">
-              <Download size={16} /> Download
+              <Download size={16} /> Download for Windows
             </button>
             <p className="mt-3 text-xs text-[var(--color-text-muted)]">
               SmartScreen warning? Click "More info" → "Run anyway"
@@ -50,19 +57,21 @@ export default function DownloadPage() {
           </a>
 
           <a
-            href="#"
-            className="group flex flex-col items-center rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-8 text-center transition-all hover:border-[var(--color-brand)] hover:bg-[var(--color-brand)]/5 opacity-50 cursor-not-allowed"
+            href={downloadLinks.macos}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="group flex flex-col items-center rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-8 text-center transition-all hover:border-[var(--color-brand)] hover:bg-[var(--color-brand)]/5"
           >
-            <div className="h-16 w-16 rounded-lg bg-[var(--color-border)] flex items-center justify-center">
-              <Monitor size={40} className="text-[var(--color-text-muted)]" />
+            <div className="h-16 w-16 rounded-lg bg-[var(--color-brand)]/20 flex items-center justify-center">
+              <Monitor size={40} className="text-[var(--color-brand)]" />
             </div>
             <h2 className="mt-4 text-xl font-bold">macOS</h2>
-            <p className="mt-1 text-sm text-[var(--color-text-muted)]">Coming Soon</p>
-            <div className="mt-4 inline-flex items-center gap-2 rounded-lg bg-[var(--color-border)] px-5 py-2 text-sm font-semibold text-[var(--color-text-muted)] cursor-default">
-              <Download size={16} /> Available Soon
-            </div>
+            <p className="mt-1 text-sm text-[var(--color-text-muted)]">Hivora-0.1.0.dmg (Intel & Apple Silicon)</p>
+            <button className="mt-4 inline-flex items-center gap-2 rounded-lg bg-[var(--color-brand)] px-5 py-2 text-sm font-semibold text-white transition-all hover:brightness-110 active:scale-95">
+              <Download size={16} /> Download for macOS
+            </button>
             <p className="mt-3 text-xs text-[var(--color-text-muted)]">
-              macOS build in development. Stay tuned!
+              Gatekeeper warning? Right-click → Open to run
             </p>
           </a>
         </div>
