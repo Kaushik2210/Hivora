@@ -1,22 +1,54 @@
-import { useState } from "react"
-import { Lock, FileCode, Clock } from "lucide-react"
+import { useEffect, useState } from 'react'
+import { Lock, FileCode, Clock } from 'lucide-react'
+import { io, Socket } from 'socket.io-client'
 
 interface LockItem {
+  id?: string
   file: string
   symbol: string
   agentId: string
-  lockedAt: number
+  lockedAt: string | number
 }
 
-export function LockManager() {
-  const [locks, setLocks] = useState<LockItem[]>([
-    {
-      file: "src/auth.ts",
-      symbol: "login",
-      agentId: "claude-1",
-      lockedAt: Date.now()
+export function LockManager({ projectId = 'default' }: { projectId?: string }) {
+  const [locks, setLocks] = useState<LockItem[]>([])
+  useEffect(() => {
+    let socket: Socket | undefined
+
+    async function fetchLocks() {
+      try {
+        const res = await fetch(`/api/projects/${projectId}/locks`, { credentials: 'include' })
+        const body = await res.json()
+        if (!body || body.error) return
+        setLocks(body.data || [])
+      } catch (e) {
+        // ignore
+      }
     }
-  ])
+
+    fetchLocks()
+
+    try {
+      socket = io()
+      socket.on('connect', () => {
+        // no-op
+      })
+      socket.on('event', (ev: any) => {
+        if (!ev || ev.projectId !== projectId) return
+        if (ev.type === 'lock:acquired') {
+          setLocks((s) => [ev.payload, ...s.filter((l) => !(l.file === ev.payload.file && l.symbol === ev.payload.symbol))])
+        } else if (ev.type === 'lock:released') {
+          setLocks((s) => s.filter((l) => !(l.file === ev.payload.file && l.symbol === ev.payload.symbol)))
+        }
+      })
+    } catch (e) {
+      // ignore
+    }
+
+    return () => {
+      if (socket) socket.disconnect()
+    }
+  }, [projectId])
 
   return (
     <div className="bg-white rounded-lg shadow-sm border p-4">
@@ -29,10 +61,7 @@ export function LockManager() {
           <p className="text-sm text-slate-500">No active locks</p>
         ) : (
           locks.map((lock, i) => (
-            <div
-              key={i}
-              className="flex items-start gap-2 p-3 bg-slate-50 rounded-lg"
-            >
+            <div key={lock.id ?? i} className="flex items-start gap-2 p-3 bg-slate-50 rounded-lg">
               <div className="bg-amber-100 text-amber-700 p-1 rounded">
                 <FileCode size={14} />
               </div>
