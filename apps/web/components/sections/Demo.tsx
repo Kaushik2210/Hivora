@@ -5,9 +5,9 @@ import { GitBranch, Lock, CheckCircle2, AlertCircle, Zap } from 'lucide-react'
 import { useState, useEffect } from 'react'
 
 const agents = [
-  { name: 'Claude', role: 'Backend', status: 'active', task: 'Refactoring auth module', color: '#D97757', file: 'auth.ts', locks: 3 },
-  { name: 'Cursor', role: 'Frontend', status: 'active', task: 'Building dashboard UI', color: '#8B5CF6', file: 'dashboard.tsx', locks: 2 },
-  { name: 'Copilot', role: 'DevOps', status: 'active', task: 'Configuring CI pipeline', color: '#8957E5', file: 'workflow.yaml', locks: 1 },
+  { name: 'Claude', role: 'Backend', status: 'active', task: 'Refactoring auth module', color: '#D97757', logo: '/logos/claude.svg', file: 'auth.ts', locks: 3 },
+  { name: 'Cursor', role: 'Frontend', status: 'active', task: 'Building dashboard UI', color: '#8B5CF6', logo: '/logos/cursor.svg', file: 'dashboard.tsx', locks: 2 },
+  { name: 'Copilot', role: 'DevOps', status: 'active', task: 'Configuring CI pipeline', color: '#8957E5', logo: '/logos/github-copilot.svg', file: 'workflow.yaml', locks: 1 },
 ]
 
 const events = [
@@ -67,13 +67,18 @@ export function Demo() {
                 >
                   <div className="flex items-start justify-between mb-2">
                     <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                      <div className="w-8 h-8 rounded-lg bg-[var(--color-surface)] flex items-center justify-center border border-[var(--color-border)]">
+                        <img src={agent.logo} alt={agent.name} className="w-6 h-6 object-contain" />
+                      </div>
                       <div>
                         <div className="text-sm font-semibold">{agent.name}</div>
                         <div className="text-xs text-[var(--color-text-muted)]">{agent.role}</div>
                       </div>
                     </div>
-                    <Lock size={14} style={{ color: agent.color }} />
+                    <div className="flex items-center gap-1.5 text-xs text-green-500">
+                      <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                      Live
+                    </div>
                   </div>
                   <div className="text-xs text-[var(--color-text-muted)] mb-1">File: {agent.file}</div>
                   <div className="text-xs mb-2 text-[var(--color-text-muted)]">{agent.task}</div>
@@ -130,10 +135,14 @@ export function Demo() {
                         key={idx}
                         className="px-4 py-2 border-b border-[var(--color-border)] flex items-start gap-3 hover:bg-[var(--color-surface)] transition-colors animate-in fade-in slide-in-from-left-2 duration-300"
                       >
-                        <span className="text-[var(--color-text-muted)]">{event.time}</span>
-                        <span style={{ color: agents.find(a => a.name === event.agent)?.color || '#fff' }} className="font-semibold w-12">
-                          {event.agent.slice(0, 3)}
-                        </span>
+                        <span className="text-[var(--color-text-muted)] min-w-fit">{event.time}</span>
+                        <div className="w-6 h-6 flex-shrink-0">
+                          <img
+                            src={agents.find(a => a.name === event.agent)?.logo}
+                            alt={event.agent}
+                            className="w-6 h-6 object-contain"
+                          />
+                        </div>
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
                             {event.status === 'success' && <CheckCircle2 size={12} className="text-green-500" />}

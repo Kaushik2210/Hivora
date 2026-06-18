@@ -28,9 +28,11 @@ export function Navbar() {
   return (
     <nav className={`sticky top-0 z-50 border-b bg-[var(--color-surface)]/80 backdrop-blur-lg transition-shadow duration-300 ${scrolled ? 'border-[var(--color-border)] shadow-lg' : 'border-transparent'}`}>
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-        <Link href="/" className="flex items-center gap-2 text-xl font-bold tracking-tight">
-          <img src="/logo.svg" alt={brand.displayName} className="h-8 w-8" />
-          {brand.displayName}
+        <Link href="/" className="flex items-center gap-3 text-xl font-bold tracking-tight hover:opacity-80 transition-opacity">
+          <div className="h-9 w-9 rounded-lg bg-gradient-to-br from-[var(--color-brand)] to-[var(--color-brand-dark)] flex items-center justify-center">
+            <span className="text-white font-bold text-lg">⚡</span>
+          </div>
+          <span className="hidden sm:inline">{brand.displayName}</span>
         </Link>
 
         <div className="hidden items-center gap-8 sm:flex">

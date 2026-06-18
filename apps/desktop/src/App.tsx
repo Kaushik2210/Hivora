@@ -16,8 +16,15 @@ export function App() {
 
   // Data state
   const [tasks, setTasks] = useState<TaskItem[]>([])
-  const agents: AgentListItem[] = []
-  const locks: LockItem[] = []
+  const agents: AgentListItem[] = [
+    { id: 'claude-1', name: 'Claude', role: 'Backend', status: 'working', logo: '🤖' },
+    { id: 'cursor-1', name: 'Cursor', role: 'Frontend', status: 'working', logo: '✏️' },
+    { id: 'copilot-1', name: 'Copilot', role: 'DevOps', status: 'idle', logo: '⚡' },
+  ]
+  const locks: LockItem[] = [
+    { id: 'lock-1', file: 'auth.ts', symbol: 'validateToken', agent: 'Claude', acquiredAt: new Date() },
+    { id: 'lock-2', file: 'dashboard.tsx', symbol: 'DashboardPage', agent: 'Cursor', acquiredAt: new Date() },
+  ]
   const [projects, setProjects] = useState<ProjectItem[]>([])
 
   useEffect(() => {
@@ -72,8 +79,11 @@ export function App() {
       {/* Title Bar */}
       <header className="flex items-center justify-between border-b border-[var(--color-border)] bg-[var(--color-surface)] px-6 py-3">
         <h1 className="flex items-center gap-2 text-lg font-bold">
-          <span className="flex h-7 w-7 items-center justify-center rounded-md bg-[var(--color-brand)] text-xs text-white">H</span>
-          {brand.displayName} Desktop
+          <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-[var(--color-brand)] to-[var(--color-brand-dark)] flex items-center justify-center">
+            <span className="text-white font-bold text-lg">⚡</span>
+          </div>
+          <span>{brand.displayName}</span>
+          <span className="text-sm font-normal text-[var(--color-text-muted)]">Desktop</span>
         </h1>
         <div className="flex items-center gap-3">
           <button onClick={handleModeToggle}
