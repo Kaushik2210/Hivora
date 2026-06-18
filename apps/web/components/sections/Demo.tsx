@@ -1,8 +1,7 @@
 'use client'
 
 import { ScrollAnimation } from '@/components/ScrollAnimation'
-import { useRouter } from 'next/navigation'
-import { GitBranch, CheckCircle2, Clock, AlertCircle, Play } from 'lucide-react'
+import { GitBranch } from 'lucide-react'
 
 const agents = [
   { name: 'Claude', role: 'Backend', status: 'active', task: 'Refactoring auth module', color: '#D97757' },
@@ -10,15 +9,7 @@ const agents = [
   { name: 'Copilot', role: 'DevOps', status: 'active', task: 'Configuring CI pipeline', color: '#8957E5' },
 ]
 
-const tasks = [
-  { title: 'User authentication flow', agent: 'Claude', status: 'done', branch: 'feat/auth' },
-  { title: 'Dashboard components', agent: 'Cursor', status: 'progress', branch: 'feat/dashboard' },
-  { title: 'API rate limiting', agent: 'Copilot', status: 'done', branch: 'feat/rate-limit' },
-  { title: 'WebSocket events', agent: 'Claude', status: 'review', branch: 'feat/websocket' },
-]
-
 export function Demo() {
-  const router = useRouter()
 
   return (
     <section className="py-24 px-4 sm:px-6 lg:px-8">
@@ -65,51 +56,58 @@ export function Demo() {
               ))}
             </div>
 
-            {/* Task board - right column */}
+            {/* Live preview - right column */}
             <div className="lg:col-span-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)] overflow-hidden">
-              <div className="flex items-center justify-between px-5 py-3 border-b border-[var(--color-border)] bg-[var(--color-surface)]">
-                <div className="flex items-center gap-2 text-sm font-semibold">
-                  <GitBranch size={14} className="text-[var(--color-brand)]" />
-                  AI Orchestrator
-                </div>
-                <div className="text-xs text-[var(--color-text-muted)]">4 tasks &middot; 3 agents</div>
-              </div>
-
-              <div className="divide-y divide-[var(--color-border)]">
-                {tasks.map((task, i) => (
-                  <div key={i} className="px-5 py-4 flex items-center justify-between hover:bg-[var(--color-surface)]/50 transition-colors">
-                    <div className="flex items-center gap-3">
-                      {task.status === 'done' && <CheckCircle2 size={16} className="text-green-500 shrink-0" />}
-                      {task.status === 'progress' && <Clock size={16} className="text-yellow-500 shrink-0" />}
-                      {task.status === 'review' && <AlertCircle size={16} className="text-blue-500 shrink-0" />}
-                      <div>
-                        <div className="text-sm font-medium">{task.title}</div>
-                        <div className="text-xs text-[var(--color-text-muted)] mt-0.5">
-                          {task.agent} &middot; {task.branch}
-                        </div>
-                      </div>
-                    </div>
-                    <div className={`text-xs px-2 py-0.5 rounded-full ${
-                      task.status === 'done' ? 'bg-green-500/10 text-green-500' :
-                      task.status === 'progress' ? 'bg-yellow-500/10 text-yellow-500' :
-                      'bg-blue-500/10 text-blue-500'
-                    }`}>
-                      {task.status === 'done' ? 'Done' : task.status === 'progress' ? 'In Progress' : 'Review'}
-                    </div>
+              <div className="px-5 py-4 border-b border-[var(--color-border)] bg-[var(--color-surface)]">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-sm font-semibold">
+                    <GitBranch size={14} className="text-[var(--color-brand)]" />
+                    Live Orchestration
                   </div>
-                ))}
+                  <div className="text-xs text-[var(--color-text-muted)]">Simulated demo</div>
+                </div>
               </div>
 
-              {/* Lock indicator */}
-              <div className="px-5 py-3 border-t border-[var(--color-border)] bg-[var(--color-surface)] flex items-center justify-between">
-                <div className="flex items-center gap-2 text-xs text-[var(--color-text-muted)]">
-                  <div className="w-2 h-2 rounded-full bg-green-500" />
-                  Symbol locks active &mdash; zero conflicts
+              <div className="p-5 grid gap-4">
+                <div className="rounded-lg bg-black text-white font-mono text-sm p-3 shadow-inner overflow-hidden">
+                  <div className="space-y-2">
+                    <div className="opacity-80">$ git fetch origin</div>
+                    <div className="text-[var(--color-brand)] animate-fade-left">agent-copilot: Applying rate-limit patch...</div>
+                    <div className="text-green-400">✔ agent-claude: Auth refactor succeeded</div>
+                    <div className="text-yellow-300 animate-fade-left">… running tests (4/7)</div>
+                    <div className="text-green-400">✔ All checks passed</div>
+                  </div>
                 </div>
-                <button onClick={() => router.push('/dashboard')} className="inline-flex items-center gap-2 rounded-md bg-[var(--color-brand)]/10 px-3 py-1 text-xs font-medium text-[var(--color-brand)] hover:bg-[var(--color-brand)]/15">
-                  <Play size={12} />
-                  View board
-                </button>
+
+                <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="text-sm font-semibold">Orchestration Timeline</div>
+                    <div className="text-xs text-[var(--color-text-muted)]">Realtime</div>
+                  </div>
+                  <ul className="space-y-3">
+                    <li className="flex items-start gap-3">
+                      <div className="w-2 h-2 rounded-full bg-green-500 mt-1" />
+                      <div>
+                        <div className="text-sm">Claude merged feat/auth</div>
+                        <div className="text-xs text-[var(--color-text-muted)]">2 minutes ago</div>
+                      </div>
+                    </li>
+                    <li className="flex items-start gap-3">
+                      <div className="w-2 h-2 rounded-full bg-yellow-400 mt-1 animate-pulse" />
+                      <div>
+                        <div className="text-sm">Cursor building dashboard UI</div>
+                        <div className="text-xs text-[var(--color-text-muted)]">Live</div>
+                      </div>
+                    </li>
+                    <li className="flex items-start gap-3">
+                      <div className="w-2 h-2 rounded-full bg-blue-400 mt-1" />
+                      <div>
+                        <div className="text-sm">Copilot configured CI pipeline</div>
+                        <div className="text-xs text-[var(--color-text-muted)]">5 minutes ago</div>
+                      </div>
+                    </li>
+                  </ul>
+                </div>
               </div>
             </div>
           </div>
