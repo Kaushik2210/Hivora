@@ -11,7 +11,9 @@
     "typecheck": "tsc --noEmit",
     "start": "node src/index.js",
     "start:mcp": "node src/mcp/server.js",
-    "test:apply-change": "node -r ts-node/register src/scripts/testApplyChange.ts"
+    "test:apply-change": "node -r ts-node/register src/scripts/testApplyChange.ts",
+    "test:locks": "node -r ts-node/register src/test/runLockTests.ts",
+    "test:worktree": "node -r ts-node/register src/test/runWorktreeTests.ts"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
@@ -24,4 +26,5 @@
     "typescript": "^5.4.5",
     "ts-node": "^10.9.1"
   }
+  
 }
