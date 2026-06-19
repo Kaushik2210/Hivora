@@ -103,6 +103,13 @@ export const config = {
         maxProjectsPerOrg: 50,
         maxTeamMembers: 20,
       },
+      team: {
+        name: 'Team',
+        maxConcurrentAgents: -1,
+        maxLocksPerDay: -1,
+        maxProjectsPerOrg: -1,
+        maxTeamMembers: -1,
+      },
       enterprise: {
         name: 'Enterprise',
         maxConcurrentAgents: -1,

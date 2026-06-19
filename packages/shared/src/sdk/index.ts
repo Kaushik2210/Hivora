@@ -170,6 +170,47 @@ export class HivoraClient {
   async unlockSymbol(projectId: string, data: { file: string; symbol: string; agentId: string }) {
     return this.request<{ success: boolean }>('POST', `/api/projects/${projectId}/locks/unlock`, data);
   }
+
+  async complete(
+    messages: Array<{ role: 'user' | 'assistant' | 'system'; content: string }>,
+    provider: 'openai' | 'anthropic' | 'cohere' = 'anthropic',
+    options?: { temperature?: number; maxTokens?: number; userApiKey?: string },
+  ) {
+    return this.request<{ content: string; provider: string; model: string }>(
+      'POST',
+      '/api/agents/complete',
+      { messages, provider, ...options },
+    );
+  }
+
+  async getAvailableProviders() {
+    return this.request<{ available: string[]; configured: Record<string, boolean> }>(
+      'GET',
+      '/api/agents/providers',
+    );
+  }
+
+  async getUserApiKeys() {
+    return this.request<Array<{ provider: string; createdAt: string; updatedAt: string }>>(
+      'GET',
+      '/api/user/api-keys',
+    );
+  }
+
+  async saveUserApiKey(provider: string, key: string) {
+    return this.request<{ provider: string; createdAt: string; updatedAt: string }>(
+      'POST',
+      '/api/user/api-keys',
+      { provider, key },
+    );
+  }
+
+  async deleteUserApiKey(provider: string) {
+    return this.request<{ deleted: boolean }>(
+      'DELETE',
+      `/api/user/api-keys/${provider}`,
+    );
+  }
 }
 
 export function createClient(opts: SdkOptions) {

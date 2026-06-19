@@ -1,20 +1,37 @@
 {
   "name": "@hivora/orchestrator",
   "version": "0.1.0",
-  "private": true,
+  "description": "Hivora AI agent orchestration MCP server — coordinate multiple AI agents on the same codebase",
   "type": "commonjs",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "bin": {
+    "hivora-mcp": "./dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
     "typecheck": "tsc --noEmit",
     "start": "node src/index.js",
-    "start:mcp": "node src/mcp/server.js",
+    "start:mcp": "node dist/cli.js start",
     "test:apply-change": "node -r ts-node/register src/scripts/testApplyChange.ts",
     "test:locks": "node -r ts-node/register src/test/runLockTests.ts",
     "test:worktree": "node -r ts-node/register src/test/runWorktreeTests.ts"
   },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "ai",
+    "agents",
+    "orchestration",
+    "claude",
+    "cursor",
+    "hivora"
+  ],
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
     "fs-extra": "^11.3.5",
@@ -26,5 +43,4 @@
     "typescript": "^5.4.5",
     "ts-node": "^10.9.1"
   }
-  
 }

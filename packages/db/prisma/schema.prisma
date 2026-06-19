@@ -21,8 +21,23 @@ model User {
   tokens        RefreshToken[]
   auditLogs     AuditLog[]
   invitations   OrganizationInvitation[] @relation("InvitedBy")
+  apiKeys       UserApiKey[]
 
   @@index([email])
+}
+
+model UserApiKey {
+  id        String   @id @default(cuid())
+  userId    String
+  provider  String   // 'anthropic', 'openai', 'cohere'
+  keyValue  String   // stored as-is; encrypt at rest in production
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, provider])
+  @@index([userId])
 }
 
 model RefreshToken {

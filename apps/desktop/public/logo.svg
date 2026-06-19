@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="128" y2="128" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#080d14"/>
+      <stop offset="100%" stop-color="#0d1520"/>
+    </linearGradient>
+    <linearGradient id="acc" x1="0" y1="0" x2="128" y2="128" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#06b6d4"/>
+      <stop offset="100%" stop-color="#0891b2"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Arka plan -->
+  <rect width="128" height="128" rx="26" fill="url(#bg)"/>
+
+  <!-- H harfi — kalın, merkezli -->
+  <!-- Sol dikey -->
+  <rect x="28" y="32" width="14" height="64" rx="4" fill="url(#acc)"/>
+  <!-- Sağ dikey -->
+  <rect x="86" y="32" width="14" height="64" rx="4" fill="url(#acc)"/>
+  <!-- Yatay köprü -->
+  <rect x="28" y="57" width="72" height="14" rx="4" fill="url(#acc)"/>
+
+  <!-- Bağlantı düğümleri — AI agent noktaları -->
+  <circle cx="35"  cy="32" r="5" fill="#22d3ee"/>
+  <circle cx="35"  cy="96" r="5" fill="#22d3ee"/>
+  <circle cx="93"  cy="32" r="5" fill="#22d3ee"/>
+  <circle cx="93"  cy="96" r="5" fill="#22d3ee"/>
+
+  <!-- Merkez koordinasyon noktası -->
+  <circle cx="64" cy="64" r="6" fill="#67e8f9"/>
+  <circle cx="64" cy="64" r="3" fill="white"/>
+</svg>

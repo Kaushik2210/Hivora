@@ -31,15 +31,16 @@ class AIService {
   async complete(
     messages: AIMessage[],
     provider: AIProvider = 'openai',
-    options?: { temperature?: number; maxTokens?: number }
+    options?: { temperature?: number; maxTokens?: number; userApiKey?: string }
   ): Promise<AIResponse> {
+    const userKey = options?.userApiKey;
     switch (provider) {
       case 'openai':
-        return this.completeOpenAI(messages, options);
+        return this.completeOpenAI(messages, options, userKey);
       case 'anthropic':
-        return this.completeAnthropic(messages, options);
+        return this.completeAnthropic(messages, options, userKey);
       case 'cohere':
-        return this.completeCohere(messages, options);
+        return this.completeCohere(messages, options, userKey);
       default:
         throw new Error(`Unsupported AI provider: ${provider}`);
     }
@@ -47,9 +48,11 @@ class AIService {
 
   private async completeOpenAI(
     messages: AIMessage[],
-    options?: { temperature?: number; maxTokens?: number }
+    options?: { temperature?: number; maxTokens?: number },
+    userKey?: string,
   ): Promise<AIResponse> {
-    if (!this.openaiApiKey) {
+    const apiKey = userKey ?? this.openaiApiKey;
+    if (!apiKey) {
       throw new Error('OpenAI API key not configured');
     }
 
@@ -57,7 +60,7 @@ class AIService {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${this.openaiApiKey}`,
+        'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
         model: config.ai.openai.model,
@@ -68,7 +71,7 @@ class AIService {
     });
 
     if (!response.ok) {
-      const error = await response.json();
+      const error = (await response.json()) as any;
       throw new Error(`OpenAI API error: ${error.error?.message || 'Unknown error'}`);
     }
 
@@ -86,9 +89,11 @@ class AIService {
 
   private async completeAnthropic(
     messages: AIMessage[],
-    options?: { temperature?: number; maxTokens?: number }
+    options?: { temperature?: number; maxTokens?: number },
+    userKey?: string,
   ): Promise<AIResponse> {
-    if (!this.anthropicApiKey) {
+    const apiKey = userKey ?? this.anthropicApiKey;
+    if (!apiKey) {
       throw new Error('Anthropic API key not configured');
     }
 
@@ -96,7 +101,7 @@ class AIService {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': this.anthropicApiKey,
+        'x-api-key': apiKey,
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
@@ -109,7 +114,7 @@ class AIService {
     });
 
     if (!response.ok) {
-      const error = await response.json();
+      const error = (await response.json()) as any;
       throw new Error(`Anthropic API error: ${error.error?.message || 'Unknown error'}`);
     }
 
@@ -127,9 +132,11 @@ class AIService {
 
   private async completeCohere(
     messages: AIMessage[],
-    options?: { temperature?: number; maxTokens?: number }
+    options?: { temperature?: number; maxTokens?: number },
+    userKey?: string,
   ): Promise<AIResponse> {
-    if (!this.cohereApiKey) {
+    const apiKey = userKey ?? this.cohereApiKey;
+    if (!apiKey) {
       throw new Error('Cohere API key not configured');
     }
 
@@ -139,7 +146,7 @@ class AIService {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${this.cohereApiKey}`,
+        'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
         model: config.ai.cohere.model,
@@ -150,7 +157,7 @@ class AIService {
     });
 
     if (!response.ok) {
-      const error = await response.json();
+      const error = (await response.json()) as any;
       throw new Error(`Cohere API error: ${error.message || 'Unknown error'}`);
     }
 

@@ -8,9 +8,11 @@ import {
 } from '@modelcontextprotocol/sdk/types.js';
 import type { ILockStore } from '../lock/types';
 import { applyChangeWithLock } from '../operations/applyChange';
+import type { HivoraTaskClient } from '../api/taskClient';
 
 export interface OrchestratorMcpServerOptions {
   lockStore: ILockStore;
+  taskClient?: HivoraTaskClient;
   name?: string;
   version?: string;
 }
@@ -18,9 +20,11 @@ export interface OrchestratorMcpServerOptions {
 export class OrchestratorMcpServer {
   private server: Server;
   private lockStore: ILockStore;
+  private taskClient?: HivoraTaskClient;
 
   constructor(opts: OrchestratorMcpServerOptions) {
     this.lockStore = opts.lockStore;
+    this.taskClient = opts.taskClient;
     this.server = new Server(
       {
         name: opts.name ?? 'hivora-orchestrator',
@@ -43,8 +47,44 @@ export class OrchestratorMcpServer {
   }
 
   private setupToolHandlers() {
+    const taskTools = this.taskClient ? [
+      {
+        name: 'get_pending_tasks',
+        description: 'List all unassigned tasks with status "todo" in this project. Use this to find work to pick up.',
+        inputSchema: { type: 'object', properties: {} },
+      },
+      {
+        name: 'list_tasks',
+        description: 'List all tasks in this project (all statuses).',
+        inputSchema: { type: 'object', properties: {} },
+      },
+      {
+        name: 'claim_task',
+        description: 'Claim a task by ID — sets it to "doing" and assigns it to this agent. Do this before starting work on a task.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            taskId: { type: 'string', description: 'The ID of the task to claim' },
+          },
+          required: ['taskId'],
+        },
+      },
+      {
+        name: 'complete_task',
+        description: 'Mark a task as "done" after finishing the work. Always call this when you finish a task.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            taskId: { type: 'string', description: 'The ID of the completed task' },
+          },
+          required: ['taskId'],
+        },
+      },
+    ] : [];
+
     this.server.setRequestHandler(ListToolsRequestSchema, async () => ({
       tools: [
+        ...taskTools,
         {
           name: 'get_locks',
           description: 'Get all currently active symbol locks across the project.',
@@ -88,7 +128,6 @@ export class OrchestratorMcpServer {
               file: { type: 'string' },
               symbol: { type: 'string' },
               agentId: { type: 'string' },
-              // optional: a small replacement string to append or a full file content
               patchText: { type: 'string' },
             },
             required: ['file', 'symbol', 'agentId'],
@@ -99,6 +138,34 @@ export class OrchestratorMcpServer {
 
     this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
       switch (request.params.name) {
+        case 'get_pending_tasks': {
+          if (!this.taskClient) throw new McpError(ErrorCode.MethodNotFound, 'Task client not configured');
+          const tasks = await this.taskClient.getPendingTasks();
+          return { content: [{ type: 'text', text: JSON.stringify(tasks, null, 2) }] };
+        }
+
+        case 'list_tasks': {
+          if (!this.taskClient) throw new McpError(ErrorCode.MethodNotFound, 'Task client not configured');
+          const tasks = await this.taskClient.listTasks();
+          return { content: [{ type: 'text', text: JSON.stringify(tasks, null, 2) }] };
+        }
+
+        case 'claim_task': {
+          if (!this.taskClient) throw new McpError(ErrorCode.MethodNotFound, 'Task client not configured');
+          const { taskId } = request.params.arguments as { taskId: string };
+          if (!taskId) throw new McpError(ErrorCode.InvalidParams, 'taskId is required');
+          const task = await this.taskClient.claimTask(taskId);
+          return { content: [{ type: 'text', text: JSON.stringify(task, null, 2) }] };
+        }
+
+        case 'complete_task': {
+          if (!this.taskClient) throw new McpError(ErrorCode.MethodNotFound, 'Task client not configured');
+          const { taskId } = request.params.arguments as { taskId: string };
+          if (!taskId) throw new McpError(ErrorCode.InvalidParams, 'taskId is required');
+          const task = await this.taskClient.completeTask(taskId);
+          return { content: [{ type: 'text', text: JSON.stringify(task, null, 2) }] };
+        }
+
         case 'get_locks': {
           const locks = await this.lockStore.getLocks();
           return {

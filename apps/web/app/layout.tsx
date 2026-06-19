@@ -4,6 +4,7 @@ import './globals.css'
 import { brand } from '@hivora/shared/brand'
 import { Navbar } from '@/components/navbar'
 import { Footer } from '@/components/footer'
+import { Toaster } from 'sonner'
 
 const inter = Inter({ subsets: ['latin'], display: 'swap' })
 
@@ -38,6 +39,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Navbar />
         <main className="flex-1">{children}</main>
         <Footer />
+        <Toaster theme="dark" richColors position="top-right" />
       </body>
     </html>
   )

@@ -3,10 +3,11 @@
 import Link from 'next/link'
 import { brand } from '@hivora/shared/brand'
 import { useState, useEffect } from 'react'
+import { usePathname } from 'next/navigation'
 import { Menu, X } from 'lucide-react'
+import Image from 'next/image'
 
 const links = [
-  { href: '/', label: 'Home' },
   { href: '/how-it-works', label: 'How It Works' },
   { href: '/platforms', label: 'Platforms' },
   { href: '/pricing', label: 'Pricing' },
@@ -16,53 +17,96 @@ const links = [
 export function Navbar() {
   const [open, setOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
-  const [mounted, setMounted] = useState(false)
+  const pathname = usePathname()
 
   useEffect(() => {
-    setMounted(true)
-    const onScroll = () => setScrolled(window.scrollY > 10)
+    const onScroll = () => setScrolled(window.scrollY > 8)
+    onScroll()
     window.addEventListener('scroll', onScroll, { passive: true })
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
+  // Close mobile menu on route change
+  useEffect(() => { setOpen(false) }, [pathname])
+
+  const isActive = (href: string) => pathname === href
+
   return (
-    <nav className={`sticky top-0 z-50 border-b bg-[var(--color-surface)]/80 backdrop-blur-lg transition-shadow duration-300 ${scrolled ? 'border-[var(--color-border)] shadow-lg' : 'border-transparent'}`}>
+    <nav className={`sticky top-0 z-50 border-b transition-all duration-300 ${
+      scrolled
+        ? 'border-[var(--color-border)] bg-[var(--color-surface)]/90 shadow-[0_1px_24px_rgba(0,0,0,0.4)] backdrop-blur-xl'
+        : 'border-transparent bg-transparent'
+    }`}>
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-        <Link href="/" className="flex items-center gap-3 text-xl font-bold tracking-tight hover:opacity-80 transition-opacity">
-          <div className="h-9 w-9 rounded-lg bg-gradient-to-br from-[var(--color-brand)] to-[var(--color-brand-dark)] flex items-center justify-center">
-            <span className="text-white font-bold text-lg">⚡</span>
-          </div>
-          <span className="hidden sm:inline">{brand.displayName}</span>
+
+        {/* Logo */}
+        <Link href="/" className="flex items-center gap-2.5 hover:opacity-85 transition-opacity">
+          <Image src="/logo.svg" alt={brand.displayName} width={32} height={32} className="rounded-lg" />
+          <span className="hidden sm:inline text-base font-bold tracking-tight">{brand.displayName}</span>
         </Link>
 
-        <div className="hidden items-center gap-8 sm:flex">
+        {/* Desktop links */}
+        <div className="hidden items-center gap-1 sm:flex">
           {links.map(l => (
-            <Link key={l.href} href={l.href} className="text-sm font-medium text-[var(--color-text-muted)] transition-colors hover:text-[var(--color-text)]">
+            <Link key={l.href} href={l.href}
+              aria-current={isActive(l.href) ? 'page' : undefined}
+              className={`relative px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                isActive(l.href)
+                  ? 'text-[var(--color-text)]'
+                  : 'text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-white/5'
+              }`}>
               {l.label}
+              {isActive(l.href) && (
+                <span className="absolute bottom-0 left-1/2 h-0.5 w-4 -translate-x-1/2 rounded-full bg-[var(--color-brand)]" />
+              )}
             </Link>
           ))}
-          <Link href="/login" className="rounded-lg bg-[var(--color-brand)] px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90">
+        </div>
+
+        {/* CTA */}
+        <div className="hidden items-center gap-3 sm:flex">
+          <Link href="/login"
+            className="text-sm font-medium text-[var(--color-text-muted)] transition-colors hover:text-[var(--color-text)]">
             Sign In
+          </Link>
+          <Link href="/register"
+            className="rounded-lg bg-[var(--color-brand)] px-4 py-2 text-sm font-semibold text-white transition-all hover:brightness-110 hover:shadow-[0_0_16px_rgba(37,99,235,0.4)]">
+            Get Started
           </Link>
         </div>
 
-        <button className="sm:hidden" onClick={() => setOpen(!open)} aria-label="Menu">
-          {open ? <X size={24} /> : <Menu size={24} />}
+        {/* Mobile hamburger */}
+        <button className="sm:hidden rounded-lg p-2 text-[var(--color-text-muted)] transition-colors hover:bg-white/5 hover:text-[var(--color-text)]"
+          onClick={() => setOpen(v => !v)} aria-label="Toggle menu" aria-expanded={open}>
+          {open ? <X size={20} /> : <Menu size={20} />}
         </button>
       </div>
 
-      {open && (
-        <div className="border-t border-[var(--color-border)] px-4 pb-4 pt-2 sm:hidden">
+      {/* Mobile menu */}
+      <div className={`overflow-hidden transition-all duration-200 sm:hidden ${open ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}>
+        <div className="border-t border-[var(--color-border)] px-4 pb-5 pt-3 space-y-1">
           {links.map(l => (
-            <Link key={l.href} href={l.href} className="block py-2 text-sm text-[var(--color-text-muted)]" onClick={() => setOpen(false)}>
+            <Link key={l.href} href={l.href}
+              className={`block rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+                isActive(l.href)
+                  ? 'bg-[var(--color-brand)]/10 text-[var(--color-brand-light)]'
+                  : 'text-[var(--color-text-muted)] hover:bg-white/5 hover:text-[var(--color-text)]'
+              }`}>
               {l.label}
             </Link>
           ))}
-          <Link href="/login" className="mt-2 block rounded-lg bg-[var(--color-brand)] px-4 py-2 text-center text-sm font-semibold text-white">
-            Sign In
-          </Link>
+          <div className="pt-2 flex flex-col gap-2">
+            <Link href="/login"
+              className="block rounded-lg border border-[var(--color-border)] px-4 py-2.5 text-center text-sm font-medium text-[var(--color-text-muted)] transition-colors hover:text-[var(--color-text)]">
+              Sign In
+            </Link>
+            <Link href="/register"
+              className="block rounded-lg bg-[var(--color-brand)] px-4 py-2.5 text-center text-sm font-semibold text-white transition-all hover:brightness-110">
+              Get Started Free
+            </Link>
+          </div>
         </div>
-      )}
+      </div>
     </nav>
   )
 }

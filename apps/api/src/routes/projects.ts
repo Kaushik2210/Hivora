@@ -202,5 +202,138 @@ export function createProjectRouter(io: IoServer): Router {
     }),
   );
 
+  // Real agent polling: list unassigned todo tasks
+  router.get(
+    '/projects/:projectId/tasks/pending',
+    asyncHandler(async (req, res) => {
+      const tasks = await prisma.task.findMany({
+        where: {
+          projectId: req.params.projectId,
+          status: 'todo',
+          assigneeId: null,
+        },
+        orderBy: [{ priority: 'desc' }, { createdAt: 'asc' }],
+      });
+      res.json(ok(
+        tasks.map((t) => ({
+          id: t.id,
+          projectId: t.projectId,
+          title: t.title,
+          description: t.description,
+          status: t.status,
+          priority: t.priority,
+          assigneeId: t.assigneeId,
+          createdAt: t.createdAt.toISOString(),
+        })),
+      ));
+    }),
+  );
+
+  // Real agent polling: claim a task (set status=doing, assign to agent)
+  router.post(
+    '/projects/:projectId/tasks/:id/claim',
+    asyncHandler(async (req, res) => {
+      const { agentId } = req.body as { agentId?: string };
+      if (!agentId) {
+        res.status(400).json(fail('MISSING_AGENT', 'agentId is required'));
+        return;
+      }
+
+      // Verify agent belongs to project
+      const agent = await prisma.agent.findFirst({
+        where: { id: agentId, projectId: req.params.projectId },
+      });
+      if (!agent) {
+        res.status(404).json(fail('AGENT_NOT_FOUND', 'Agent not found in this project'));
+        return;
+      }
+
+      // Claim: only claim if task is still unclaimed (atomic check)
+      const task = await prisma.task.findFirst({
+        where: { id: req.params.id, projectId: req.params.projectId, status: 'todo', assigneeId: null },
+      });
+      if (!task) {
+        res.status(409).json(fail('TASK_UNAVAILABLE', 'Task is already claimed or not in todo status'));
+        return;
+      }
+
+      const [updated] = await prisma.$transaction([
+        prisma.task.update({
+          where: { id: req.params.id },
+          data: { status: 'doing', assigneeId: agentId },
+        }),
+        prisma.agent.update({
+          where: { id: agentId },
+          data: { status: 'working', currentTask: task.title },
+        }),
+      ]);
+
+      const event: RealtimeEvent = {
+        type: 'task:updated',
+        payload: { id: updated.id, status: updated.status, projectId: updated.projectId, assigneeId: updated.assigneeId },
+        organizationId: req.orgId ?? '',
+        projectId: req.params.projectId,
+      };
+      io.to(`project:${req.params.projectId}`).emit('event', event);
+
+      res.json(ok({
+        id: updated.id,
+        projectId: updated.projectId,
+        title: updated.title,
+        description: updated.description,
+        status: updated.status,
+        priority: updated.priority,
+        assigneeId: updated.assigneeId,
+        createdAt: updated.createdAt.toISOString(),
+      }));
+    }),
+  );
+
+  // Real agent polling: complete a task (set status=done, agent back to idle)
+  router.post(
+    '/projects/:projectId/tasks/:id/complete',
+    asyncHandler(async (req, res) => {
+      const { agentId } = req.body as { agentId?: string };
+
+      const task = await prisma.task.findFirst({
+        where: { id: req.params.id, projectId: req.params.projectId },
+      });
+      if (!task) {
+        res.status(404).json(fail('TASK_NOT_FOUND', 'Task not found'));
+        return;
+      }
+
+      let updated: Awaited<ReturnType<typeof prisma.task.update>>;
+
+      if (agentId) {
+        const results = await prisma.$transaction([
+          prisma.task.update({ where: { id: req.params.id }, data: { status: 'done' } }),
+          prisma.agent.updateMany({ where: { id: agentId, projectId: req.params.projectId }, data: { status: 'idle', currentTask: null } }),
+        ]);
+        updated = results[0];
+      } else {
+        updated = await prisma.task.update({ where: { id: req.params.id }, data: { status: 'done' } });
+      }
+
+      const event: RealtimeEvent = {
+        type: 'task:updated',
+        payload: { id: updated.id, status: updated.status, projectId: updated.projectId },
+        organizationId: req.orgId ?? '',
+        projectId: req.params.projectId,
+      };
+      io.to(`project:${req.params.projectId}`).emit('event', event);
+
+      res.json(ok({
+        id: updated.id,
+        projectId: updated.projectId,
+        title: updated.title,
+        status: updated.status,
+        priority: updated.priority,
+        assigneeId: updated.assigneeId,
+        createdAt: updated.createdAt.toISOString(),
+      }));
+    }),
+  );
+
   return router;
 }

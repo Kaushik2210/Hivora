@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { db } from '@hivora/db';
+import { prisma } from '@hivora/db';
 import { subscriptionService, SubscriptionLimits } from '../services/subscription.js';
 
 export interface AuthenticatedRequest extends Request {
@@ -14,7 +14,7 @@ export const subscriptionCheck = (feature: keyof SubscriptionLimits) => {
         return res.status(401).json({ error: 'Organization ID required' });
       }
 
-      const subscription = await db.subscription.findUniqueOrThrow({
+      const subscription = await prisma.subscription.findUniqueOrThrow({
         where: { organizationId: req.organizationId },
         include: { usage: true },
       });

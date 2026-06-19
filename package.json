@@ -8,14 +8,20 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "npm run build --workspaces",
+    "build": "npm run build --workspaces --if-present",
     "dev": "npm run dev --workspace apps/api",
     "dev:api": "npm run dev --workspace apps/api",
+    "dev:web": "npm run dev --workspace apps/web",
+    "dev:desktop": "npm run dev --workspace apps/desktop",
+    "dev:all": "concurrently -n \"api,web,desktop\" -c \"cyan,green,blue\" \"npm run dev:api\" \"npm run dev:web\" \"npm run dev:desktop\"",
     "typecheck": "npm run typecheck --workspaces",
     "db:generate": "npm run generate --workspace packages/db",
     "db:migrate": "npm run migrate --workspace packages/db",
     "db:seed": "npm run seed --workspace packages/db",
     "db:studio": "npm run studio --workspace packages/db"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
   },
   "engines": {
     "node": ">=18"

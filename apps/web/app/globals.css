@@ -1,14 +1,14 @@
 @import "tailwindcss";
 
 :root {
-  --color-brand: #7c3aed;
-  --color-brand-dark: #5b21b6;
-  --color-brand-light: #a78bfa;
-  --color-surface: #0f0f1a;
-  --color-surface-elevated: #1a1a2e;
-  --color-border: #2a2a3e;
-  --color-text: #f1f1f6;
-  --color-text-muted: #8888a0;
+  --color-brand: #2563eb;
+  --color-brand-dark: #1d4ed8;
+  --color-brand-light: #60a5fa;
+  --color-surface: #0d1117;
+  --color-surface-elevated: #0f1620;
+  --color-border: #1a2235;
+  --color-text: #e2e8f0;
+  --color-text-muted: #6b7a99;
 }
 
 html { scroll-behavior: smooth; color-scheme: dark; }
@@ -82,3 +82,22 @@ h1, h2, h3, h4, h5, h6 { user-select: none; }
 .delay-2 { transition-delay: 0.2s; animation-delay: 0.2s; }
 .delay-3 { transition-delay: 0.3s; animation-delay: 0.3s; }
 .delay-4 { transition-delay: 0.4s; animation-delay: 0.4s; }
+.delay-5 { transition-delay: 0.5s; animation-delay: 0.5s; }
+.delay-6 { transition-delay: 0.6s; animation-delay: 0.6s; }
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  15%       { transform: translateX(-6px); }
+  30%       { transform: translateX(6px); }
+  45%       { transform: translateX(-4px); }
+  60%       { transform: translateX(4px); }
+  75%       { transform: translateX(-2px); }
+  90%       { transform: translateX(2px); }
+}
+.animate-shake { animation: shake 0.45s ease-out; }
+
+@keyframes count-up {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-count-up { animation: count-up 0.4s ease-out both; }

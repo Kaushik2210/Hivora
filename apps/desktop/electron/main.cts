@@ -1,10 +1,12 @@
-import { app, BrowserWindow, ipcMain } from 'electron'
+import { app, BrowserWindow, ipcMain, shell, Menu } from 'electron'
 import path from 'path'
 import { autoUpdater } from 'electron-updater'
 
 let mainWindow: BrowserWindow | null = null
 
 const isDev = process.env.NODE_ENV === 'development'
+
+Menu.setApplicationMenu(null)
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -13,12 +15,14 @@ function createWindow() {
     minWidth: 1200,
     minHeight: 700,
     webPreferences: {
-      preload: path.join(__dirname, 'preload.js'),
+      preload: path.join(__dirname, 'preload.cjs'),
       contextIsolation: true,
       nodeIntegration: false,
     },
     title: 'Hivora - Multi-AI Orchestration Platform',
     show: false,
+    frame: false,
+    backgroundColor: '#0d1117',
   })
 
   if (isDev) {
@@ -28,7 +32,10 @@ function createWindow() {
     mainWindow.loadFile(path.join(__dirname, '../dist/index.html'))
   }
 
-  mainWindow.once('ready-to-show', () => mainWindow?.show())
+  mainWindow.webContents.once('did-finish-load', () => mainWindow?.show())
+  mainWindow.webContents.on('did-fail-load', (_e, code) => {
+    if (isDev && code !== -3) setTimeout(() => mainWindow?.loadURL('http://localhost:5173'), 1000)
+  })
   mainWindow.on('closed', () => { mainWindow = null })
 }
 
@@ -58,8 +65,20 @@ autoUpdater.on('update-downloaded', () => {
   mainWindow?.webContents.send('update-downloaded')
 })
 
+import { scanDirectory } from './scanner.cjs'
+
 ipcMain.handle('update:install', () => {
   autoUpdater.quitAndInstall()
+})
+
+ipcMain.handle('fs:scan', async (_, dirPath?: string) => {
+  const targetDir = dirPath || path.join(__dirname, '../../src') // Default to desktop/src
+  try {
+    return scanDirectory(targetDir)
+  } catch (error) {
+    console.error('Scan error:', error)
+    return []
+  }
 })
 
 // IPC: Cloud API proxy
@@ -77,3 +96,12 @@ ipcMain.handle('api:request', async (_, { method, path: apiPath, body, token }: 
     return { error: true, message: String(error) }
   }
 })
+
+// Window Management
+ipcMain.handle('window:minimize', () => { mainWindow?.minimize() })
+ipcMain.handle('window:maximize', () => {
+  if (mainWindow) mainWindow.isMaximized() ? mainWindow.unmaximize() : mainWindow.maximize()
+})
+ipcMain.handle('window:close', () => { mainWindow?.close() })
+ipcMain.handle('window:is-maximized', () => mainWindow?.isMaximized() ?? false)
+ipcMain.handle('shell:open', (_, url: string) => { if (url) shell.openExternal(url) })

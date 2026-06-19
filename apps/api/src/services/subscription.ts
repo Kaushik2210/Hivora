@@ -1,6 +1,6 @@
 import { config } from '../config/index.js';
 
-export type SubscriptionTier = 'free' | 'pro' | 'enterprise';
+export type SubscriptionTier = 'free' | 'pro' | 'team' | 'enterprise';
 
 export interface SubscriptionLimits {
   maxConcurrentAgents: number;

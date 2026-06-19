@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { CheckCircle2, AlertCircle, Code2, Users, Cloud, Lock } from 'lucide-react'
+import { CheckCircle2, AlertCircle, Code2, Users, Lock } from 'lucide-react'
 import Link from 'next/link'
 
 export const metadata: Metadata = { title: 'Free Tier' }
