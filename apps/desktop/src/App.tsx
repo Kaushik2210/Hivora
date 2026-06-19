@@ -19,16 +19,8 @@ type SidebarSection = 'explorer' | 'agents' | 'models' | 'locks' | 'settings'
 
 interface Agent    { id: string; name: string; tool: string; logo: string; status: 'working' | 'idle' | 'error'; currentTask?: string; color: string }
 interface FileLock { file: string; symbol: string; agentId: string }
-interface AIModel  { id: string; name: string; provider: string; logo: string; status: 'connected' | 'available' | 'unavailable'; color: string }
 interface Project  { id: string; name: string }
 
-const SUPPORTED_MODELS: AIModel[] = [
-  { id: 'm1', name: 'Claude Opus 4',  provider: 'Anthropic', logo: '/logos/claude.svg',        status: 'available', color: '#D97757' },
-  { id: 'm2', name: 'Cursor Agent',   provider: 'Cursor',    logo: '/logos/cursor.svg',         status: 'available', color: '#3b82f6' },
-  { id: 'm3', name: 'GitHub Copilot', provider: 'GitHub',    logo: '/logos/github-copilot.svg', status: 'available', color: '#2563EB' },
-  { id: 'm4', name: 'Cline',          provider: 'Cline',     logo: '/logos/cline.svg',          status: 'available', color: '#22c55e' },
-  { id: 'm5', name: 'Devin',          provider: 'Cognition', logo: '/logos/devin.svg',          status: 'available', color: '#f59e0b' },
-]
 
 // ── App ────────────────────────────────────────────────────────────────────────
 export function App() {
@@ -40,7 +32,6 @@ export function App() {
   const [tasks, setTasks]   = useState<Task[]>([])
   const [agents, setAgents] = useState<Agent[]>([])
   const [locks, setLocks]   = useState<FileLock[]>([])
-  const [models]            = useState<AIModel[]>(SUPPORTED_MODELS)
   const [syncing, setSyncing] = useState(false)
 
   const [showAddTask,    setShowAddTask]    = useState(false)
@@ -54,6 +45,10 @@ export function App() {
   const [webUrl,        setWebUrl]        = useState('http://localhost:3000')
   const [notifications, setNotifications] = useState(true)
   const [autoSync,      setAutoSync]      = useState(true)
+  const [anthropicKey,  setAnthropicKey]  = useState(() => localStorage.getItem('hivora_anthropic_key') ?? '')
+  const [openaiKey,     setOpenaiKey]     = useState(() => localStorage.getItem('hivora_openai_key') ?? '')
+  const [showAnthKey,   setShowAnthKey]   = useState(false)
+  const [showOaiKey,    setShowOaiKey]    = useState(false)
 
   const [authed,       setAuthed]      = useState(false)
   const [showWelcome,  setShowWelcome] = useState(false)
@@ -246,7 +241,7 @@ export function App() {
 
   const selectedProject = projects.find(p => p.id === selectedProjectId)
   const activeAgents    = agents.filter(a => a.status === 'working').length
-  const connectedModels = models.filter(m => m.status === 'connected').length
+
 
   const MENUS = [
     { label: 'File', items: [
@@ -385,27 +380,57 @@ export function App() {
                   </div>
             )}
 
-            {/* AI Models */}
+            {/* AI Agents (formerly Models) */}
             {section === 'models' && (
               <div style={{ paddingTop: 8, paddingBottom: 8 }}>
-                <p style={{ fontSize: 10, color: C.textMut, margin: '0 0 6px', padding: '0 12px' }}>
-                  {connectedModels > 0 ? `${connectedModels} connected` : 'Supported platforms'}
-                </p>
-                {models.map(model => (
-                  <div key={model.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 12px', cursor: 'default', transition: 'background .1s' }}
-                    onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = C.hover}
-                    onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'none'}
-                  >
-                    <img src={model.logo} alt={model.name} style={{ width: 22, height: 22, borderRadius: 5, flexShrink: 0 }}
-                      onError={e => { const el = e.currentTarget as HTMLImageElement; el.style.display = 'none'; const fb = el.nextElementSibling as HTMLElement; if (fb) fb.style.display = 'flex' }} />
-                    <div style={{ width: 22, height: 22, borderRadius: 5, display: 'none', alignItems: 'center', justifyContent: 'center', background: model.color, color: 'white', fontSize: 9, fontWeight: 700, flexShrink: 0 }}>{model.name[0]}</div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <span style={{ fontSize: 11, color: C.text, display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{model.name}</span>
-                      <span style={{ fontSize: 10, color: C.textMut }}>{model.provider}</span>
-                    </div>
-                    <span style={{ width: 7, height: 7, borderRadius: '50%', flexShrink: 0, background: model.status === 'connected' ? '#22c55e' : C.muted }} />
+                {agents.length > 0 ? (
+                  <>
+                    <p style={{ fontSize: 10, color: C.textMut, margin: '0 0 6px', padding: '0 12px' }}>
+                      {agents.filter(a => a.status === 'working').length} working · {agents.filter(a => a.status === 'idle').length} idle
+                    </p>
+                    {agents.map(agent => (
+                      <div key={agent.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 12px', cursor: 'default', transition: 'background .1s' }}
+                        onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = C.hover}
+                        onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'none'}
+                      >
+                        <div style={{ position: 'relative', flexShrink: 0 }}>
+                          <img src={agent.logo} alt={agent.name} style={{ width: 24, height: 24, borderRadius: 6 }}
+                            onError={e => { const el = e.currentTarget as HTMLImageElement; el.style.display = 'none'; const fb = el.nextElementSibling as HTMLElement; if (fb) fb.style.display = 'flex' }} />
+                          <div style={{ width: 24, height: 24, borderRadius: 6, display: 'none', alignItems: 'center', justifyContent: 'center', background: agent.color, color: 'white', fontSize: 10, fontWeight: 700 }}>{agent.name[0]}</div>
+                          <span style={{ position: 'absolute', bottom: -1, right: -1, width: 8, height: 8, borderRadius: '50%', border: `2px solid ${C.surface}`, background: agent.status === 'working' ? '#22c55e' : C.textMut }} />
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <span style={{ fontSize: 11, color: C.text, display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 600 }}>{agent.name}</span>
+                          <span style={{ fontSize: 10, color: C.textMut }}>{agent.currentTask ?? agent.tool}</span>
+                        </div>
+                        <span style={{ fontSize: 9, padding: '2px 5px', borderRadius: 4, fontWeight: 600, background: agent.status === 'working' ? '#22c55e20' : `${C.textMut}20`, color: agent.status === 'working' ? '#4ade80' : C.textMut }}>
+                          {agent.status}
+                        </span>
+                      </div>
+                    ))}
+                  </>
+                ) : (
+                  <div style={{ padding: '16px 12px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+                    <p style={{ fontSize: 10, color: C.textMut, margin: 0 }}>No agents connected yet. Connect your AI tools via MCP:</p>
+                    {[
+                      { name: 'Claude Code', logo: '/logos/claude.svg', color: '#D97757', hint: 'Add to CLAUDE.md or mcp config' },
+                      { name: 'Cursor', logo: '/logos/cursor.svg', color: '#3b82f6', hint: '.cursor/mcp.json' },
+                      { name: 'Cline (VS Code)', logo: '/logos/cline.svg', color: '#22c55e', hint: 'Cline MCP settings' },
+                    ].map(tool => (
+                      <div key={tool.name} style={{ display: 'flex', alignItems: 'center', gap: 8, background: C.card, border: `1px solid ${C.muted}`, borderRadius: 8, padding: '8px 10px' }}>
+                        <img src={tool.logo} style={{ width: 20, height: 20, borderRadius: 5, flexShrink: 0 }} alt={tool.name}
+                          onError={e => { const el = e.currentTarget as HTMLImageElement; el.style.background = tool.color; el.style.borderRadius = '5px' }} />
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <span style={{ fontSize: 11, color: C.text, fontWeight: 600, display: 'block' }}>{tool.name}</span>
+                          <span style={{ fontSize: 9, color: C.textMut }}>{tool.hint}</span>
+                        </div>
+                      </div>
+                    ))}
+                    <p style={{ fontSize: 9, color: C.textMut, margin: 0, lineHeight: 1.5 }}>
+                      Run: <code style={{ background: C.card, padding: '1px 4px', borderRadius: 3 }}>npx @hivora/orchestrator@latest start</code>
+                    </p>
                   </div>
-                ))}
+                )}
               </div>
             )}
 
@@ -512,16 +537,65 @@ export function App() {
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
                     <Key size={11} style={{ color: C.textMut }} />
-                    <span style={{ fontSize: 10, fontWeight: 600, color: C.textMut, textTransform: 'uppercase', letterSpacing: '0.08em' }}>AI Providers</span>
+                    <span style={{ fontSize: 10, fontWeight: 600, color: C.textMut, textTransform: 'uppercase', letterSpacing: '0.08em' }}>AI Provider Keys</span>
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-                    {[{ name: 'Anthropic', logo: '/logos/claude.svg' }, { name: 'GitHub', logo: '/logos/github-copilot.svg' }, { name: 'Cursor', logo: '/logos/cursor.svg' }].map(p => (
-                      <div key={p.name} style={{ display: 'flex', alignItems: 'center', gap: 8, background: C.card, border: `1px solid ${C.muted}`, borderRadius: 6, padding: '6px 8px' }}>
-                        <img src={p.logo} style={{ width: 16, height: 16, borderRadius: 4 }} alt={p.name} onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none' }} />
-                        <span style={{ fontSize: 11, color: C.textDim, flex: 1 }}>{p.name}</span>
-                        <span style={{ fontSize: 9, color: C.textMut }}>Configure →</span>
+                  <p style={{ fontSize: 10, color: C.textMut, margin: '0 0 10px', lineHeight: 1.5 }}>
+                    Kendi API anahtarınızı girerek vibecoding panelini kullanabilirsiniz.
+                  </p>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {/* Anthropic */}
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                        <img src="/logos/claude.svg" style={{ width: 14, height: 14, borderRadius: 3 }} alt="Anthropic"
+                          onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none' }} />
+                        <label style={{ fontSize: 10, color: C.textDim, fontWeight: 600 }}>Anthropic (Claude)</label>
+                        {anthropicKey && <span style={{ fontSize: 9, color: '#4ade80', marginLeft: 'auto' }}>✓ saved</span>}
                       </div>
-                    ))}
+                      <div style={{ display: 'flex', gap: 4 }}>
+                        <input type={showAnthKey ? 'text' : 'password'} value={anthropicKey}
+                          onChange={e => setAnthropicKey(e.target.value)}
+                          placeholder="sk-ant-api03-..."
+                          style={{ flex: 1, background: C.card, border: `1px solid ${C.muted}`, borderRadius: 6, padding: '5px 7px', fontSize: 10, color: C.text, outline: 'none', fontFamily: 'monospace', minWidth: 0 }}
+                          onFocus={e => (e.currentTarget as HTMLElement).style.borderColor = C.accent}
+                          onBlur={e => (e.currentTarget as HTMLElement).style.borderColor = C.muted}
+                        />
+                        <button onClick={() => setShowAnthKey(v => !v)}
+                          style={{ background: C.card, border: `1px solid ${C.muted}`, borderRadius: 6, padding: '0 6px', cursor: 'pointer', color: C.textMut, fontSize: 12 }}>
+                          {showAnthKey ? '🙈' : '👁'}
+                        </button>
+                        <button onClick={() => localStorage.setItem('hivora_anthropic_key', anthropicKey)}
+                          style={{ background: anthropicKey ? C.accent : C.muted, border: 'none', borderRadius: 6, padding: '0 8px', cursor: anthropicKey ? 'pointer' : 'not-allowed', color: 'white', fontSize: 10, fontWeight: 600 }}>
+                          Save
+                        </button>
+                      </div>
+                    </div>
+                    {/* OpenAI */}
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                        <div style={{ width: 14, height: 14, borderRadius: 3, background: '#10a37f', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          <span style={{ fontSize: 8, color: 'white', fontWeight: 700 }}>O</span>
+                        </div>
+                        <label style={{ fontSize: 10, color: C.textDim, fontWeight: 600 }}>OpenAI (GPT-4)</label>
+                        {openaiKey && <span style={{ fontSize: 9, color: '#4ade80', marginLeft: 'auto' }}>✓ saved</span>}
+                      </div>
+                      <div style={{ display: 'flex', gap: 4 }}>
+                        <input type={showOaiKey ? 'text' : 'password'} value={openaiKey}
+                          onChange={e => setOpenaiKey(e.target.value)}
+                          placeholder="sk-proj-..."
+                          style={{ flex: 1, background: C.card, border: `1px solid ${C.muted}`, borderRadius: 6, padding: '5px 7px', fontSize: 10, color: C.text, outline: 'none', fontFamily: 'monospace', minWidth: 0 }}
+                          onFocus={e => (e.currentTarget as HTMLElement).style.borderColor = C.accent}
+                          onBlur={e => (e.currentTarget as HTMLElement).style.borderColor = C.muted}
+                        />
+                        <button onClick={() => setShowOaiKey(v => !v)}
+                          style={{ background: C.card, border: `1px solid ${C.muted}`, borderRadius: 6, padding: '0 6px', cursor: 'pointer', color: C.textMut, fontSize: 12 }}>
+                          {showOaiKey ? '🙈' : '👁'}
+                        </button>
+                        <button onClick={() => localStorage.setItem('hivora_openai_key', openaiKey)}
+                          style={{ background: openaiKey ? C.accent : C.muted, border: 'none', borderRadius: 6, padding: '0 8px', cursor: openaiKey ? 'pointer' : 'not-allowed', color: 'white', fontSize: 10, fontWeight: 600 }}>
+                          Save
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
@@ -530,15 +604,19 @@ export function App() {
                     <Monitor size={11} style={{ color: C.textMut }} />
                     <span style={{ fontSize: 10, fontWeight: 600, color: C.textMut, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Preferences</span>
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    {[{ label: 'Notifications', value: notifications, toggle: () => setNotifications(v => !v), icon: <Bell size={11} style={{ color: C.textMut }} /> }, { label: 'Auto Sync', value: autoSync, toggle: () => setAutoSync(v => !v), icon: <RefreshCw size={11} style={{ color: C.textMut }} /> }].map(({ label, value, toggle, icon }) => (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {([
+                      { label: 'Notifications', value: notifications, toggle: () => setNotifications(v => !v), icon: <Bell size={11} style={{ color: C.textMut }} /> },
+                      { label: 'Auto Sync', value: autoSync, toggle: () => setAutoSync(v => !v), icon: <RefreshCw size={11} style={{ color: C.textMut }} /> },
+                    ] as const).map(({ label, value, toggle, icon }) => (
                       <div key={label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                           {icon}
                           <span style={{ fontSize: 11, color: C.textDim }}>{label}</span>
                         </div>
-                        <button onClick={toggle} style={{ width: 32, height: 16, borderRadius: 99, border: 'none', cursor: 'pointer', position: 'relative', transition: 'background .2s', background: value ? C.accent : C.muted }}>
-                          <span style={{ position: 'absolute', top: 2, width: 12, height: 12, borderRadius: '50%', background: 'white', boxShadow: '0 1px 3px rgba(0,0,0,0.4)', transition: 'transform .2s', transform: value ? 'translateX(18px)' : 'translateX(2px)' }} />
+                        {/* Toggle switch — fixed size with overflow:hidden */}
+                        <button onClick={toggle} style={{ width: 36, height: 20, borderRadius: 99, border: 'none', cursor: 'pointer', position: 'relative', transition: 'background .2s', background: value ? C.accent : C.muted, padding: 0, overflow: 'hidden', flexShrink: 0 }}>
+                          <span style={{ position: 'absolute', top: 3, left: 3, width: 14, height: 14, borderRadius: '50%', background: 'white', boxShadow: '0 1px 3px rgba(0,0,0,0.5)', transition: 'transform .2s', transform: value ? 'translateX(16px)' : 'translateX(0)' }} />
                         </button>
                       </div>
                     ))}
@@ -566,7 +644,7 @@ export function App() {
           {mode === 'cloud' && !authed ? (
             <EmptyState icon={<User size={28} />} title="Cloud Mode" desc="Sign in to Hivora Cloud under the Settings panel to access your online projects." action={() => setSection('settings')} actionLabel="Sign In" />
           ) : !selectedProject ? (
-            <EmptyState icon={<Package size={28} />} title="No project selected" desc="Create or select a project from the Explorer panel to view its task board." action={() => setShowAddProject(true)} actionLabel="Create Project" />
+            <EmptyState icon={<Package size={28} />} title="Proje seç veya oluştur" desc="Soldaki Explorer panelinden bir proje seçin. Her proje için AI agent'larınız task'ları birbirinden bağımsız olarak alıp tamamlar — Cursor, Claude veya Cline'da kod yazarken Hivora kimin neyi düzenlediğini koordine eder." action={() => setShowAddProject(true)} actionLabel="Yeni Proje" />
           ) : (
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
               <Board
@@ -605,7 +683,7 @@ export function App() {
           <div onClick={() => setSection('models')} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '2px 8px', borderRadius: 4, color: '#4a7ab5', fontSize: 10, cursor: 'pointer', transition: 'background .1s' }}
             onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.06)'}
             onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'none'}
-          ><Layers size={11} /> {models.length} platforms</div>
+          ><Layers size={11} /> {agents.length > 0 ? `${agents.length} agents` : 'no agents'}</div>
           {notifications && <div style={{ padding: '2px 6px', borderRadius: 4, color: '#4a7ab5', cursor: 'pointer' }}><Bell size={11} /></div>}
         </div>
       </div>
