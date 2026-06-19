@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import {
   FolderOpen, Lock, GitBranch,
   Settings, Cpu, X, Check, Wifi, Layers,
-  User, Package, Bell,
+  User, Package, Bell, Zap,
 } from 'lucide-react'
 import { useRealtime } from './hooks/useRealtime'
 import type { RealtimeEvent } from '@hivora/shared'
@@ -12,10 +12,10 @@ import { AgentWorkspace } from './components/AgentWorkspace'
 import { EmptyState } from './components/EmptyState'
 import { WelcomeScreen } from './components/WelcomeScreen'
 import { Sidebar } from './components/Sidebar'
+import type { SidebarSection } from './components/Sidebar'
 import type { Task, TaskStatus } from './components/TaskCard'
 
-type Mode           = 'cloud' | 'local'
-type SidebarSection = 'explorer' | 'agents' | 'models' | 'locks' | 'settings'
+type Mode = 'cloud' | 'local'
 
 interface Agent    { id: string; name: string; tool: string; logo: string; status: 'working' | 'idle' | 'error'; currentTask?: string; color: string }
 interface FileLock { file: string; symbol: string; agentId: string }
@@ -45,11 +45,6 @@ export function App() {
   const [webUrl,        setWebUrl]        = useState('http://localhost:3000')
   const [notifications, setNotifications] = useState(true)
   const [autoSync,      setAutoSync]      = useState(true)
-  const [anthropicKey,  setAnthropicKey]  = useState(() => localStorage.getItem('hivora_anthropic_key') ?? '')
-  const [openaiKey,     setOpenaiKey]     = useState(() => localStorage.getItem('hivora_openai_key') ?? '')
-  const [showAnthKey,   setShowAnthKey]   = useState(false)
-  const [showOaiKey,    setShowOaiKey]    = useState(false)
-
   const [authed,       setAuthed]      = useState(false)
   const [showWelcome,  setShowWelcome] = useState(false)
 
@@ -304,6 +299,7 @@ export function App() {
           {actBtn('agents',   <Cpu        size={17} />, 'Agents (Ctrl+Shift+A)')}
           {actBtn('models',   <Layers     size={17} />, 'AI Models (Ctrl+Shift+M)')}
           {actBtn('locks',    <Lock       size={17} />, 'Locks (Ctrl+Shift+L)')}
+          {actBtn('skills',   <Zap        size={17} />, 'Skills')}
           <div style={{ flex: 1 }} />
           <button onClick={() => setSection('settings')} title="Settings (Ctrl+,)"
             style={{ width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8, border: 'none', background: section === 'settings' ? `${C.accent}15` : 'none', color: section === 'settings' ? C.accentLt : C.textMut, cursor: 'pointer', transition: 'all .15s' }}
@@ -322,10 +318,6 @@ export function App() {
           locks={locks}
           serverUrl={serverUrl}
           webUrl={webUrl}
-          anthropicKey={anthropicKey}
-          openaiKey={openaiKey}
-          showAnthKey={showAnthKey}
-          showOaiKey={showOaiKey}
           notifications={notifications}
           autoSync={autoSync}
           onSelectProject={setSelectedProjectId}
@@ -334,12 +326,6 @@ export function App() {
           onLogout={handleLogout}
           onServerUrlChange={setServerUrl}
           onWebUrlChange={setWebUrl}
-          onAnthropicKeyChange={setAnthropicKey}
-          onOpenaiKeyChange={setOpenaiKey}
-          onSaveAnthropicKey={() => localStorage.setItem('hivora_anthropic_key', anthropicKey)}
-          onSaveOpenaiKey={() => localStorage.setItem('hivora_openai_key', openaiKey)}
-          onToggleAnthKey={() => setShowAnthKey(v => !v)}
-          onToggleOaiKey={() => setShowOaiKey(v => !v)}
           onToggleNotifications={() => setNotifications(v => !v)}
           onToggleAutoSync={() => setAutoSync(v => !v)}
           onOpenWebApp={() => eAPI?.shellOpen(webUrl)}

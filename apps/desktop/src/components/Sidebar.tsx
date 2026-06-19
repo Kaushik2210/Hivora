@@ -1,11 +1,13 @@
+import { useState } from 'react'
 import {
   Plus, FolderOpen, Lock, FileCode2, Bell, User, ExternalLink, Server,
-  ChevronDown, Cpu, Key, Monitor, RefreshCw,
+  ChevronDown, Cpu, Key, Monitor, RefreshCw, Zap, GitBranch, Search,
+  Code2, Database, Bot, Shield, Activity,
 } from 'lucide-react'
 import { C } from '../theme'
 import { EmptyState } from './EmptyState'
 
-type SidebarSection = 'explorer' | 'agents' | 'models' | 'locks' | 'settings'
+export type SidebarSection = 'explorer' | 'agents' | 'models' | 'locks' | 'settings' | 'skills'
 
 interface Agent    { id: string; name: string; tool: string; logo: string; status: 'working' | 'idle' | 'error'; currentTask?: string; color: string }
 interface FileLock { file: string; symbol: string; agentId: string }
@@ -21,10 +23,6 @@ interface SidebarProps {
   locks: FileLock[]
   serverUrl: string
   webUrl: string
-  anthropicKey: string
-  openaiKey: string
-  showAnthKey: boolean
-  showOaiKey: boolean
   notifications: boolean
   autoSync: boolean
   onSelectProject: (id: string) => void
@@ -33,27 +31,130 @@ interface SidebarProps {
   onLogout: () => void
   onServerUrlChange: (v: string) => void
   onWebUrlChange: (v: string) => void
-  onAnthropicKeyChange: (v: string) => void
-  onOpenaiKeyChange: (v: string) => void
-  onSaveAnthropicKey: () => void
-  onSaveOpenaiKey: () => void
-  onToggleAnthKey: () => void
-  onToggleOaiKey: () => void
   onToggleNotifications: () => void
   onToggleAutoSync: () => void
   onOpenWebApp: () => void
 }
 
+// ── Provider definitions ─────────────────────────────────────────────────────
+const PROVIDERS = [
+  { id: 'anthropic',  label: 'Anthropic',        sublabel: 'Claude',         placeholder: 'sk-ant-api03-…',  icon: null,      color: '#D97757', logo: '/logos/claude.svg' },
+  { id: 'openai',     label: 'OpenAI',            sublabel: 'GPT',            placeholder: 'sk-proj-…',       icon: null,      color: '#10a37f', logo: null },
+  { id: 'gemini',     label: 'Google',            sublabel: 'Gemini',         placeholder: 'AIza…',           icon: null,      color: '#4285F4', logo: null },
+  { id: 'groq',       label: 'Groq',              sublabel: 'LLaMA / Mixtral',placeholder: 'gsk_…',           icon: null,      color: '#F55036', logo: null },
+  { id: 'mistral',    label: 'Mistral AI',        sublabel: 'Mistral',        placeholder: 'sk-…',            icon: null,      color: '#FF7000', logo: null },
+  { id: 'cohere',     label: 'Cohere',            sublabel: 'Command R',      placeholder: '…',               icon: null,      color: '#39594D', logo: null },
+  { id: 'xai',        label: 'xAI',               sublabel: 'Grok',           placeholder: 'xai-…',           icon: null,      color: '#1DA1F2', logo: null },
+  { id: 'deepseek',   label: 'DeepSeek',          sublabel: 'DeepSeek-V3',    placeholder: 'sk-…',            icon: null,      color: '#4F46E5', logo: null },
+  { id: 'together',   label: 'Together AI',       sublabel: 'Open Models',    placeholder: '…',               icon: null,      color: '#7C3AED', logo: null },
+]
+
+const PROVIDER_INITIALS: Record<string, string> = {
+  openai: 'O', gemini: 'G', groq: 'G', mistral: 'M', cohere: 'C', xai: 'X', deepseek: 'D', together: 'T',
+}
+
+// ── Skills definitions ───────────────────────────────────────────────────────
+const SKILL_GROUPS = [
+  {
+    group: 'Code & Files',
+    items: [
+      { icon: Code2,    name: 'Code Editing',        desc: 'Read, write and patch source files' },
+      { icon: Search,   name: 'Codebase Search',     desc: 'Semantic + keyword search across files' },
+      { icon: GitBranch,name: 'Git Operations',      desc: 'Branch, commit, diff, merge' },
+      { icon: Database, name: 'File System',         desc: 'Scan directories, read/write files' },
+    ],
+  },
+  {
+    group: 'Agent Coordination',
+    items: [
+      { icon: Bot,      name: 'Multi-Agent',         desc: 'Coordinate parallel agent sessions' },
+      { icon: Lock,     name: 'Symbol Locking',      desc: 'Prevent file conflicts between agents' },
+      { icon: Zap,      name: 'Task Dispatch',       desc: 'Claim and complete tasks via MCP' },
+      { icon: Activity, name: 'Live Monitoring',     desc: 'Real-time agent status & logs' },
+    ],
+  },
+  {
+    group: 'Security & Safety',
+    items: [
+      { icon: Shield,   name: 'Permission Guards',   desc: 'Tool-level access control' },
+      { icon: Monitor,  name: 'Audit Trail',         desc: 'Full log of every agent action' },
+    ],
+  },
+]
+
+// ── ApiKeyRow ────────────────────────────────────────────────────────────────
+function ApiKeyRow({ p }: { p: typeof PROVIDERS[0] }) {
+  const storageKey = `hivora_key_${p.id}`
+  const [val,  setVal]  = useState(() => localStorage.getItem(storageKey) ?? '')
+  const [show, setShow] = useState(false)
+  const [saved, setSaved] = useState(!!localStorage.getItem(storageKey))
+
+  const save = () => {
+    if (!val.trim()) return
+    localStorage.setItem(storageKey, val.trim())
+    setSaved(true)
+  }
+  const clear = () => {
+    localStorage.removeItem(storageKey)
+    setVal('')
+    setSaved(false)
+  }
+
+  return (
+    <div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+        {p.logo ? (
+          <img src={p.logo} style={{ width: 14, height: 14, borderRadius: 3, flexShrink: 0 }} alt={p.label}
+            onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none' }} />
+        ) : (
+          <div style={{ width: 14, height: 14, borderRadius: 3, background: p.color, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <span style={{ fontSize: 8, color: 'white', fontWeight: 700 }}>{PROVIDER_INITIALS[p.id] ?? p.label[0]}</span>
+          </div>
+        )}
+        <label style={{ fontSize: 10, color: C.textDim, fontWeight: 600 }}>{p.label} <span style={{ color: C.textMut, fontWeight: 400 }}>({p.sublabel})</span></label>
+        {saved && <span style={{ fontSize: 9, color: '#4ade80', marginLeft: 'auto' }}>✓ saved</span>}
+      </div>
+      <div style={{ display: 'flex', gap: 4 }}>
+        <input
+          type={show ? 'text' : 'password'} value={val}
+          onChange={e => { setVal(e.target.value); setSaved(false) }}
+          placeholder={p.placeholder}
+          style={{ flex: 1, background: C.card, border: `1px solid ${C.muted}`, borderRadius: 6, padding: '5px 7px', fontSize: 10, color: C.text, outline: 'none', fontFamily: 'monospace', minWidth: 0 }}
+          onFocus={e => (e.currentTarget as HTMLElement).style.borderColor = C.accent}
+          onBlur={e => (e.currentTarget as HTMLElement).style.borderColor = C.muted}
+          onKeyDown={e => e.key === 'Enter' && save()}
+        />
+        <button onClick={() => setShow(v => !v)}
+          style={{ background: C.card, border: `1px solid ${C.muted}`, borderRadius: 6, padding: '0 6px', cursor: 'pointer', color: C.textMut, fontSize: 11 }}>
+          {show ? '🙈' : '👁'}
+        </button>
+        {saved ? (
+          <button onClick={clear}
+            style={{ background: '#ef444420', border: '1px solid #ef444440', borderRadius: 6, padding: '0 7px', cursor: 'pointer', color: '#f87171', fontSize: 10, fontWeight: 600 }}>
+            ✕
+          </button>
+        ) : (
+          <button onClick={save} disabled={!val.trim()}
+            style={{ background: val.trim() ? C.accent : C.muted, border: 'none', borderRadius: 6, padding: '0 8px', cursor: val.trim() ? 'pointer' : 'not-allowed', color: 'white', fontSize: 10, fontWeight: 600 }}>
+            Save
+          </button>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ── Sidebar ──────────────────────────────────────────────────────────────────
 export function Sidebar({
   section, mode, authed, projects, selectedProjectId, agents, locks,
-  serverUrl, webUrl, anthropicKey, openaiKey, showAnthKey, showOaiKey,
-  notifications, autoSync,
+  serverUrl, webUrl, notifications, autoSync,
   onSelectProject, onShowAddProject, onShowWelcome, onLogout,
-  onServerUrlChange, onWebUrlChange, onAnthropicKeyChange, onOpenaiKeyChange,
-  onSaveAnthropicKey, onSaveOpenaiKey, onToggleAnthKey, onToggleOaiKey,
-  onToggleNotifications, onToggleAutoSync, onOpenWebApp,
+  onServerUrlChange, onWebUrlChange, onToggleNotifications, onToggleAutoSync, onOpenWebApp,
 }: SidebarProps) {
-  const sectionLabel = { explorer: 'Explorer', agents: 'Agents', models: 'AI Models', locks: 'Locks', settings: 'Settings' }[section]
+  const sectionLabel = {
+    explorer: 'Explorer', agents: 'Agents', models: 'AI Models',
+    locks: 'Locks', settings: 'Settings', skills: 'Skills',
+  }[section]
 
   return (
     <div style={{ width: 220, background: C.surface, borderRight: `1px solid ${C.border}`, display: 'flex', flexDirection: 'column', flexShrink: 0, overflow: 'hidden' }}>
@@ -123,7 +224,7 @@ export function Sidebar({
               </div>
         )}
 
-        {/* AI Models (shows connected agents) */}
+        {/* AI Models */}
         {section === 'models' && (
           <div style={{ paddingTop: 8, paddingBottom: 8 }}>
             {agents.length > 0 ? (
@@ -154,15 +255,15 @@ export function Sidebar({
               </>
             ) : (
               <div style={{ padding: '16px 12px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-                <p style={{ fontSize: 10, color: C.textMut, margin: 0 }}>No agents connected yet. Connect your AI tools via MCP:</p>
+                <p style={{ fontSize: 10, color: C.textMut, margin: 0 }}>No agents connected. Connect via MCP:</p>
                 {[
-                  { name: 'Claude Code', logo: '/logos/claude.svg', color: '#D97757', hint: 'Add to CLAUDE.md or mcp config' },
+                  { name: 'Claude Code', logo: '/logos/claude.svg', color: '#D97757', hint: 'CLAUDE.md or mcp config' },
                   { name: 'Cursor', logo: '/logos/cursor.svg', color: '#3b82f6', hint: '.cursor/mcp.json' },
                   { name: 'Cline (VS Code)', logo: '/logos/cline.svg', color: '#22c55e', hint: 'Cline MCP settings' },
                 ].map(tool => (
                   <div key={tool.name} style={{ display: 'flex', alignItems: 'center', gap: 8, background: C.card, border: `1px solid ${C.muted}`, borderRadius: 8, padding: '8px 10px' }}>
                     <img src={tool.logo} style={{ width: 20, height: 20, borderRadius: 5, flexShrink: 0 }} alt={tool.name}
-                      onError={e => { const el = e.currentTarget as HTMLImageElement; el.style.background = tool.color; el.style.borderRadius = '5px' }} />
+                      onError={e => { const el = e.currentTarget as HTMLImageElement; el.style.background = tool.color }} />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <span style={{ fontSize: 11, color: C.text, fontWeight: 600, display: 'block' }}>{tool.name}</span>
                       <span style={{ fontSize: 9, color: C.textMut }}>{tool.hint}</span>
@@ -208,6 +309,40 @@ export function Sidebar({
                   )
                 })}
               </div>
+        )}
+
+        {/* Skills */}
+        {section === 'skills' && (
+          <div style={{ padding: '8px 0', overflowY: 'auto' }}>
+            <p style={{ fontSize: 10, color: C.textMut, margin: '0 12px 12px', lineHeight: 1.5 }}>
+              Built-in capabilities available to all connected agents.
+            </p>
+            {SKILL_GROUPS.map(group => (
+              <div key={group.group} style={{ marginBottom: 16 }}>
+                <div style={{ padding: '2px 12px 6px', fontSize: 9, fontWeight: 700, color: C.textMut, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                  {group.group}
+                </div>
+                {group.items.map(skill => {
+                  const Icon = skill.icon
+                  return (
+                    <div key={skill.name} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '7px 12px', transition: 'background .1s', cursor: 'default' }}
+                      onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = C.hover}
+                      onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'none'}
+                    >
+                      <div style={{ width: 22, height: 22, borderRadius: 5, background: `${C.accent}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>
+                        <Icon size={11} style={{ color: C.accentLt }} />
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 11, fontWeight: 600, color: C.text }}>{skill.name}</div>
+                        <div style={{ fontSize: 9, color: C.textMut, lineHeight: 1.4, marginTop: 1 }}>{skill.desc}</div>
+                      </div>
+                      <span style={{ fontSize: 8, padding: '1px 5px', borderRadius: 3, background: '#22c55e18', color: '#4ade80', fontWeight: 600, flexShrink: 0, marginTop: 3 }}>ON</span>
+                    </div>
+                  )
+                })}
+              </div>
+            ))}
+          </div>
         )}
 
         {/* Settings */}
@@ -270,65 +405,15 @@ export function Sidebar({
 
             {/* AI Provider Keys */}
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
                 <Key size={11} style={{ color: C.textMut }} />
                 <span style={{ fontSize: 10, fontWeight: 600, color: C.textMut, textTransform: 'uppercase', letterSpacing: '0.08em' }}>AI Provider Keys</span>
               </div>
               <p style={{ fontSize: 10, color: C.textMut, margin: '0 0 10px', lineHeight: 1.5 }}>
-                Enter your own API keys to use them directly in the agent workspace.
+                Keys are stored locally. Press Enter or Save to confirm.
               </p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {/* Anthropic */}
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                    <img src="/logos/claude.svg" style={{ width: 14, height: 14, borderRadius: 3 }} alt="Anthropic"
-                      onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none' }} />
-                    <label style={{ fontSize: 10, color: C.textDim, fontWeight: 600 }}>Anthropic (Claude)</label>
-                    {anthropicKey && <span style={{ fontSize: 9, color: '#4ade80', marginLeft: 'auto' }}>✓ saved</span>}
-                  </div>
-                  <div style={{ display: 'flex', gap: 4 }}>
-                    <input type={showAnthKey ? 'text' : 'password'} value={anthropicKey}
-                      onChange={e => onAnthropicKeyChange(e.target.value)}
-                      placeholder="sk-ant-api03-…"
-                      style={{ flex: 1, background: C.card, border: `1px solid ${C.muted}`, borderRadius: 6, padding: '5px 7px', fontSize: 10, color: C.text, outline: 'none', fontFamily: 'monospace', minWidth: 0 }}
-                      onFocus={e => (e.currentTarget as HTMLElement).style.borderColor = C.accent}
-                      onBlur={e => (e.currentTarget as HTMLElement).style.borderColor = C.muted}
-                    />
-                    <button onClick={onToggleAnthKey} style={{ background: C.card, border: `1px solid ${C.muted}`, borderRadius: 6, padding: '0 6px', cursor: 'pointer', color: C.textMut, fontSize: 12 }}>
-                      {showAnthKey ? '🙈' : '👁'}
-                    </button>
-                    <button onClick={onSaveAnthropicKey}
-                      style={{ background: anthropicKey ? C.accent : C.muted, border: 'none', borderRadius: 6, padding: '0 8px', cursor: anthropicKey ? 'pointer' : 'not-allowed', color: 'white', fontSize: 10, fontWeight: 600 }}>
-                      Save
-                    </button>
-                  </div>
-                </div>
-                {/* OpenAI */}
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                    <div style={{ width: 14, height: 14, borderRadius: 3, background: '#10a37f', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                      <span style={{ fontSize: 8, color: 'white', fontWeight: 700 }}>O</span>
-                    </div>
-                    <label style={{ fontSize: 10, color: C.textDim, fontWeight: 600 }}>OpenAI (GPT-4)</label>
-                    {openaiKey && <span style={{ fontSize: 9, color: '#4ade80', marginLeft: 'auto' }}>✓ saved</span>}
-                  </div>
-                  <div style={{ display: 'flex', gap: 4 }}>
-                    <input type={showOaiKey ? 'text' : 'password'} value={openaiKey}
-                      onChange={e => onOpenaiKeyChange(e.target.value)}
-                      placeholder="sk-proj-…"
-                      style={{ flex: 1, background: C.card, border: `1px solid ${C.muted}`, borderRadius: 6, padding: '5px 7px', fontSize: 10, color: C.text, outline: 'none', fontFamily: 'monospace', minWidth: 0 }}
-                      onFocus={e => (e.currentTarget as HTMLElement).style.borderColor = C.accent}
-                      onBlur={e => (e.currentTarget as HTMLElement).style.borderColor = C.muted}
-                    />
-                    <button onClick={onToggleOaiKey} style={{ background: C.card, border: `1px solid ${C.muted}`, borderRadius: 6, padding: '0 6px', cursor: 'pointer', color: C.textMut, fontSize: 12 }}>
-                      {showOaiKey ? '🙈' : '👁'}
-                    </button>
-                    <button onClick={onSaveOpenaiKey}
-                      style={{ background: openaiKey ? C.accent : C.muted, border: 'none', borderRadius: 6, padding: '0 8px', cursor: openaiKey ? 'pointer' : 'not-allowed', color: 'white', fontSize: 10, fontWeight: 600 }}>
-                      Save
-                    </button>
-                  </div>
-                </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {PROVIDERS.map(p => <ApiKeyRow key={p.id} p={p} />)}
               </div>
             </div>
 
@@ -341,7 +426,7 @@ export function Sidebar({
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {([
                   { label: 'Notifications', value: notifications, toggle: onToggleNotifications, icon: <Bell size={11} style={{ color: C.textMut }} /> },
-                  { label: 'Auto Sync', value: autoSync, toggle: onToggleAutoSync, icon: <RefreshCw size={11} style={{ color: C.textMut }} /> },
+                  { label: 'Auto Sync',     value: autoSync,      toggle: onToggleAutoSync,      icon: <RefreshCw size={11} style={{ color: C.textMut }} /> },
                 ] as const).map(({ label, value, toggle, icon }) => (
                   <div key={label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
