@@ -9,7 +9,7 @@ import { useRealtime } from './hooks/useRealtime'
 import type { RealtimeEvent } from '@hivora/shared'
 import { C } from './theme'
 import { TitleBar } from './components/TitleBar'
-import { Board } from './components/Board'
+import { AgentWorkspace } from './components/AgentWorkspace'
 import { EmptyState } from './components/EmptyState'
 import { WelcomeScreen } from './components/WelcomeScreen'
 import type { Task, TaskStatus } from './components/TaskCard'
@@ -635,25 +635,24 @@ export function App() {
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 12px', height: '100%', background: C.surface, borderTop: `1px solid ${C.border}`, borderLeft: `1px solid ${C.border}`, borderRight: `1px solid ${C.border}`, borderRadius: '6px 6px 0 0', fontSize: 12, color: C.text, marginBottom: -1 }}>
                 <GitBranch size={11} style={{ color: C.accentLt }} />
                 {selectedProject.name}
-                <span style={{ color: C.textMut, fontSize: 10, marginLeft: 4 }}>board</span>
+                <span style={{ color: C.textMut, fontSize: 10, marginLeft: 4 }}>workspace</span>
               </div>
             )}
           </div>
 
-          {/* Board area */}
+          {/* Workspace */}
           {mode === 'cloud' && !authed ? (
             <EmptyState icon={<User size={28} />} title="Cloud Mode" desc="Sign in to Hivora Cloud under the Settings panel to access your online projects." action={() => setSection('settings')} actionLabel="Sign In" />
           ) : !selectedProject ? (
-            <EmptyState icon={<Package size={28} />} title="Proje seç veya oluştur" desc="Soldaki Explorer panelinden bir proje seçin. Her proje için AI agent'larınız task'ları birbirinden bağımsız olarak alıp tamamlar — Cursor, Claude veya Cline'da kod yazarken Hivora kimin neyi düzenlediğini koordine eder." action={() => setShowAddProject(true)} actionLabel="Yeni Proje" />
+            <EmptyState icon={<Package size={28} />} title="Select or create a project" desc="Pick a project from the Explorer panel. Your AI agents will pick up tasks and work on them in real-time — coordinate Claude, Cursor, and Cline all from one place." action={() => setShowAddProject(true)} actionLabel="New Project" />
           ) : (
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-              <Board
-                tasks={tasks}
-                projectName={selectedProject.name}
-                onMove={handleTaskMove}
-                onAddTask={() => setShowAddTask(true)}
-              />
-            </div>
+            <AgentWorkspace
+              tasks={tasks}
+              agents={agents}
+              projectName={selectedProject.name}
+              onAddTask={(title) => { if (title) { setNewTitle(title); setTimeout(() => handleAddTask(), 0) } else setShowAddTask(true) }}
+              onMoveTask={(id, status) => handleTaskMove(id, status as TaskStatus)}
+            />
           )}
         </div>
       </div>
