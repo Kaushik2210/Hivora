@@ -1,8 +1,8 @@
-# OpenCrew - Multi-AI Orchestrator Platform
+# Hivora - Multi-AI Orchestrator Platform
 
 **Ücretsiz & Açık Kaynak İnsan-AI İşbirliği Ortamı**
 
-OpenCrew, aynı proje üzerinde çalışan birden fazla insan geliştirici ve birden fazla AI aracını (Cursor, Claude Code, GitHub Copilot, vb.) tek bir merkezi koordinasyon katmanı altında bir araya getiren platformdur.
+Hivora, aynı proje üzerinde çalışan birden fazla insan geliştirici ve birden fazla AI aracını (Cursor, Claude Code, GitHub Copilot, vb.) tek bir merkezi koordinasyon katmanı altında bir araya getiren platformdur.
 
 ## Özellikler
 
@@ -17,7 +17,7 @@ OpenCrew, aynı proje üzerinde çalışan birden fazla insan geliştirici ve bi
 ## Proje Yapısı
 
 ```
-opencrew/
+hivora/
 ├── core/                 # Backend (Node.js + TypeScript)
 │   ├── src/
 │   │   ├── index.ts      # Express API server
@@ -98,7 +98,7 @@ cd dashboard
 npm run build:win
 ```
 
-Çıktı: `release/OpenCrew Setup 1.0.0.exe`
+Çıktı: `release/Hivora Setup 1.0.0.exe`
 
 ### macOS (.dmg) için Build
 
@@ -107,7 +107,7 @@ cd dashboard
 npm run build:mac
 ```
 
-Çıktı: `release/OpenCrew-1.0.0.dmg`
+Çıktı: `release/Hivora-1.0.0.dmg`
 
 ### Linux (AppImage) için Build
 
@@ -116,7 +116,7 @@ cd dashboard
 npm run build:linux
 ```
 
-Çıktı: `release/OpenCrew-1.0.0.AppImage`
+Çıktı: `release/Hivora-1.0.0.AppImage`
 
 ## API Endpoints
 
@@ -151,7 +151,7 @@ MCP server `stdio` üzerinden çalışır ve şu tool'ları sunar:
 
 ## Kullanım
 
-1. **Projeyi Aç**: OpenCrew uygulamasını başlat ve çalışmak istediğin projeyi seç
+1. **Projeyi Aç**: Hivora uygulamasını başlat ve çalışmak istediğin projeyi seç
 2. **AI Ajanları Ekle**: Cursor, Claude Code, veya diğer AI araçlarını bağla
 3. **Görev Ata**: Kanban panosunda görevleri AI veya insan takım üyelerine ata
 4. **Sembol Kilitle**: AI'ların çakışmasını önlemek için fonksiyonları kilitle
@@ -176,13 +176,13 @@ MCP server `stdio` üzerinden çalışır ve şu tool'ları sunar:
 
 ## Lisans
 
-[MIT](LICENSE) © 2024 OpenCrew
+[MIT](LICENSE) © 2024 Hivora
 
 ## İletişim
 
-- GitHub: [github.com/opencrew/opencrew](https://github.com/opencrew/opencrew)
-- Discord: [discord.gg/opencrew](https://discord.gg/opencrew)
-- Website: [opencrew.dev](https://opencrew.dev)
+- GitHub: [github.com/Enard52/Hivora](https://github.com/Enard52/Hivora)
+- Discord: [discord.gg/hivora](https://discord.gg/hivora)
+- Website: [hivora.dev](https://hivora.dev)
 
 ---
 
