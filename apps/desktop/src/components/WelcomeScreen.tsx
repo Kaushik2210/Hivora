@@ -1,23 +1,39 @@
 import { useState } from 'react'
+import { Eye, EyeOff } from 'lucide-react'
 import { C } from '../theme'
 
 type Tab = 'signin' | 'register'
 
+interface UserProfile { name: string; email: string; avatarUrl: string | null }
+
 interface Props {
-  onLogin: (accessToken: string, refreshToken: string) => void
-  onOffline: () => void
+  onLogin: (accessToken: string, refreshToken: string, user: UserProfile) => void
   eAPI: any
   serverUrl: string
 }
 
-export function WelcomeScreen({ onLogin, onOffline, eAPI, serverUrl }: Props) {
+export function WelcomeScreen({ onLogin, eAPI, serverUrl }: Props) {
   const [tab, setTab]           = useState<Tab>('signin')
   const [email, setEmail]       = useState('')
   const [password, setPassword] = useState('')
   const [name, setName]         = useState('')
   const [loading, setLoading]   = useState(false)
   const [error, setError]       = useState<string | null>(null)
+  const [info, setInfo]         = useState<string | null>(null)
   const [showPw, setShowPw]     = useState(false)
+
+  // GitHub OAuth: open the system browser; the API redirects back via the
+  // hivora://auth deep link, which App.tsx catches to complete the sign-in.
+  const handleGitHub = () => {
+    setError(null); setInfo(null)
+    eAPI?.shellOpen(`${serverUrl}/api/auth/github?client=desktop`)
+    setInfo('GitHub opened — authorize in the browser, then you will be redirected back automatically.')
+  }
+
+  const handleGoogle = () => {
+    setError(null)
+    setInfo('Google sign-in is coming soon.')
+  }
 
   const request = async (path: string, body: unknown) => {
     const res = await eAPI?.apiRequest({ method: 'POST', path, body })
@@ -31,7 +47,11 @@ export function WelcomeScreen({ onLogin, onOffline, eAPI, serverUrl }: Props) {
     setLoading(true); setError(null)
     try {
       const res = await request('/api/auth/login', { email: email.trim(), password: password.trim() })
-      onLogin(res.data.accessToken, res.data.refreshToken)
+      onLogin(res.data.tokens.accessToken, res.data.tokens.refreshToken, {
+        name: res.data.user?.name ?? '',
+        email: res.data.user?.email ?? email.trim(),
+        avatarUrl: null,
+      })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed. Check your credentials.')
     } finally { setLoading(false) }
@@ -45,7 +65,11 @@ export function WelcomeScreen({ onLogin, onOffline, eAPI, serverUrl }: Props) {
       await request('/api/auth/register', { email: email.trim(), password: password.trim(), name: name.trim() || undefined })
       // Auto sign in after register
       const res = await request('/api/auth/login', { email: email.trim(), password: password.trim() })
-      onLogin(res.data.accessToken, res.data.refreshToken)
+      onLogin(res.data.tokens.accessToken, res.data.tokens.refreshToken, {
+        name: res.data.user?.name ?? name.trim(),
+        email: res.data.user?.email ?? email.trim(),
+        avatarUrl: null,
+      })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Registration failed.')
     } finally { setLoading(false) }
@@ -76,13 +100,22 @@ export function WelcomeScreen({ onLogin, onOffline, eAPI, serverUrl }: Props) {
         <div style={{ textAlign: 'center', marginBottom: 28 }}>
           <div style={{
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-            width: 52, height: 52, borderRadius: 14,
-            background: `linear-gradient(135deg, ${C.accent}, #6366f1)`,
-            marginBottom: 14, boxShadow: `0 0 24px ${C.accent}50`,
+            width: 64, height: 64, borderRadius: 18,
+            background: C.card, border: `1px solid ${C.muted}`,
+            marginBottom: 14, boxShadow: `0 0 32px ${C.accent}40`,
           }}>
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
-              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
+            <img src="./logo.svg" alt="Hivora"
+              style={{ width: 44, height: 44, borderRadius: 10 }}
+              onError={e => {
+                // Fallback: draw a simple "H" monogram if logo missing
+                const el = e.currentTarget as HTMLImageElement
+                el.style.display = 'none'
+                const fb = document.createElement('span')
+                fb.textContent = 'H'
+                fb.style.cssText = 'font-size:28px;font-weight:900;color:#60a5fa;letter-spacing:-1px'
+                el.parentElement?.appendChild(fb)
+              }}
+            />
           </div>
           <div style={{ fontSize: 20, fontWeight: 700, color: C.text, letterSpacing: '-0.02em' }}>Hivora</div>
           <div style={{ fontSize: 12, color: C.textMut, marginTop: 4 }}>AI Agent Orchestration</div>
@@ -122,8 +155,8 @@ export function WelcomeScreen({ onLogin, onOffline, eAPI, serverUrl }: Props) {
                   onFocus={e => { e.currentTarget.style.borderColor = C.accent; e.currentTarget.style.boxShadow = `0 0 0 3px ${C.accent}20` }}
                   onBlur={e => { e.currentTarget.style.borderColor = C.muted; e.currentTarget.style.boxShadow = 'none' }} />
                 <button type="button" onClick={() => setShowPw(p => !p)}
-                  style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: C.textMut, cursor: 'pointer', padding: 2, fontSize: 14 }}>
-                  {showPw ? '🙈' : '👁'}
+                  style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: C.textMut, cursor: 'pointer', padding: 2, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  {showPw ? <EyeOff size={14} /> : <Eye size={14} />}
                 </button>
               </div>
             </div>
@@ -164,8 +197,8 @@ export function WelcomeScreen({ onLogin, onOffline, eAPI, serverUrl }: Props) {
                   onFocus={e => { e.currentTarget.style.borderColor = C.accent; e.currentTarget.style.boxShadow = `0 0 0 3px ${C.accent}20` }}
                   onBlur={e => { e.currentTarget.style.borderColor = C.muted; e.currentTarget.style.boxShadow = 'none' }} />
                 <button type="button" onClick={() => setShowPw(p => !p)}
-                  style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: C.textMut, cursor: 'pointer', padding: 2, fontSize: 14 }}>
-                  {showPw ? '🙈' : '👁'}
+                  style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: C.textMut, cursor: 'pointer', padding: 2, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  {showPw ? <EyeOff size={14} /> : <Eye size={14} />}
                 </button>
               </div>
             </div>
@@ -181,15 +214,40 @@ export function WelcomeScreen({ onLogin, onOffline, eAPI, serverUrl }: Props) {
           </form>
         )}
 
-        {/* Offline option */}
-        <div style={{ textAlign: 'center', marginTop: 20 }}>
-          <button onClick={onOffline}
-            style={{ background: 'none', border: 'none', color: C.textMut, fontSize: 11, cursor: 'pointer', textDecoration: 'underline', textDecorationColor: `${C.textMut}60` }}>
-            Continue offline (local mode)
+        {/* Divider */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '20px 0 16px' }}>
+          <div style={{ flex: 1, height: 1, background: C.muted }} />
+          <span style={{ fontSize: 10, color: C.textMut, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+            {tab === 'signin' ? 'or sign in with' : 'or sign up with'}
+          </span>
+          <div style={{ flex: 1, height: 1, background: C.muted }} />
+        </div>
+
+        {/* OAuth providers */}
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button type="button" onClick={handleGoogle}
+            style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, background: C.card, border: `1px solid ${C.muted}`, borderRadius: 8, padding: '10px', fontSize: 12, fontWeight: 600, color: C.textMut, cursor: 'pointer', transition: 'all .15s' }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = C.accent; e.currentTarget.style.color = C.text }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = C.muted; e.currentTarget.style.color = C.textMut }}>
+            <svg width="15" height="15" viewBox="0 0 24 24"><path fill="currentColor" d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z"/></svg>
+            Google
+          </button>
+          <button type="button" onClick={handleGitHub}
+            style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, background: C.card, border: `1px solid ${C.muted}`, borderRadius: 8, padding: '10px', fontSize: 12, fontWeight: 600, color: C.textMut, cursor: 'pointer', transition: 'all .15s' }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = C.accent; e.currentTarget.style.color = C.text }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = C.muted; e.currentTarget.style.color = C.textMut }}>
+            <svg width="15" height="15" viewBox="0 0 24 24"><path fill="currentColor" d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+            GitHub
           </button>
         </div>
 
-        <p style={{ textAlign: 'center', fontSize: 10, color: C.textMut, marginTop: 16, opacity: .6 }}>
+        {info && (
+          <div style={{ background: `${C.accent}18`, border: `1px solid ${C.accent}40`, borderRadius: 6, padding: '8px 10px', fontSize: 11, color: C.accentLt ?? '#93c5fd', marginTop: 14, lineHeight: 1.5 }}>
+            {info}
+          </div>
+        )}
+
+        <p style={{ textAlign: 'center', fontSize: 10, color: C.textMut, marginTop: 20, opacity: .6 }}>
           Connecting to {serverUrl}
         </p>
       </div>

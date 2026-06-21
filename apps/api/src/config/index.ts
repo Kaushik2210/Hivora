@@ -71,6 +71,11 @@ export const config = {
     apiMax: int('RATE_LIMIT_API_MAX', 120),
   },
 
+  github: {
+    clientId: process.env.GITHUB_CLIENT_ID || '',
+    clientSecret: process.env.GITHUB_CLIENT_SECRET || '',
+  },
+
   ai: {
     providers: (process.env.AI_PROVIDERS ?? 'openai').split(',').map((p) => p.trim()),
     openai: {

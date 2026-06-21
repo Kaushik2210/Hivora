@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Check, Minus, ArrowRight } from 'lucide-react'
+import { Check, Minus, ArrowRight, KeyRound } from 'lucide-react'
 import Link from 'next/link'
 import { brand } from '@hivora/shared/brand'
 
@@ -10,33 +10,39 @@ const tiers = [
     name: 'Free',
     monthly: 0,
     desc: 'For solo developers exploring multi-AI orchestration.',
-    features: ['Up to 2 projects', '5 agents per project', 'Local mode only', 'Community support', '1 user'],
+    features: ['Bring your own API keys', '2 panels at once', 'Local mode', 'Up to 2 projects', '37+ AI models', 'Community support'],
   },
   {
     name: 'Pro',
-    monthly: 19,
-    desc: 'For indie developers and small teams shipping with AI.',
-    features: ['Unlimited projects', '50 agents per project', 'Cloud + Local mode', 'Real-time team board', 'Up to 5 users', 'Email support'],
+    monthly: 15,
+    desc: 'For indie developers shipping with multi-agent AI.',
+    features: ['Everything in Free', 'Unlimited panels', 'Unlimited projects', 'Cloud + Local mode', 'Cloud API-key sync', 'Analytics dashboard', 'Email support'],
     popular: true,
   },
   {
     name: 'Team',
-    monthly: 79,
-    desc: 'For growing teams that need reliability and control.',
-    features: ['Unlimited projects', 'Unlimited agents', 'Cloud + Local mode', 'Real-time team board', 'Up to 25 users', 'Priority support', 'Audit log', 'SSO (coming soon)'],
+    monthly: 25,
+    perSeat: true,
+    desc: 'For teams collaborating in real time.',
+    features: ['Everything in Pro', 'Real-time team board', 'Symbol-level locking', 'Invites & roles', 'Up to 25 users', 'Audit log', 'Priority support'],
   },
 ]
 
 const allFeatures = [
-  { name: 'Projects',         free: 'Up to 2',  pro: 'Unlimited', team: 'Unlimited' },
-  { name: 'Agents per project', free: '5',       pro: '50',        team: 'Unlimited' },
-  { name: 'Cloud mode',       free: false,       pro: true,        team: true },
-  { name: 'Local mode',       free: true,        pro: true,        team: true },
-  { name: 'Team members',     free: '1',         pro: 'Up to 5',   team: 'Up to 25' },
-  { name: 'Real-time board',  free: false,       pro: true,        team: true },
-  { name: 'Audit log',        free: false,       pro: false,       team: true },
-  { name: 'Priority support', free: false,       pro: false,       team: true },
-  { name: 'SSO',              free: false,       pro: false,       team: 'Coming soon' },
+  { name: 'Bring your own keys (no markup)', free: true, pro: true,  team: true },
+  { name: 'AI models',          free: '37+',      pro: '37+',       team: '37+' },
+  { name: 'Projects',           free: 'Up to 2',  pro: 'Unlimited', team: 'Unlimited' },
+  { name: 'Panels at once',     free: '2',        pro: 'Unlimited', team: 'Unlimited' },
+  { name: 'Local mode',         free: true,       pro: true,        team: true },
+  { name: 'Cloud mode',         free: false,      pro: true,        team: true },
+  { name: 'Cloud API-key sync', free: false,      pro: true,        team: true },
+  { name: 'Analytics dashboard',free: false,      pro: true,        team: true },
+  { name: 'Real-time board',    free: false,      pro: false,       team: true },
+  { name: 'Symbol-level locking', free: false,    pro: false,       team: true },
+  { name: 'Team members',       free: '1',        pro: '1',         team: 'Up to 25' },
+  { name: 'Audit log',          free: false,      pro: false,       team: true },
+  { name: 'Priority support',   free: false,      pro: false,       team: true },
+  { name: 'SSO',                free: false,      pro: false,       team: 'Coming soon' },
 ]
 
 function FeatureCell({ val }: { val: string | boolean }) {
@@ -63,6 +69,12 @@ export function PricingClient() {
             Start free. Upgrade when you need more power.
           </p>
 
+          {/* BYOK — the core differentiator vs. bundled-compute tools */}
+          <div className="mt-6 inline-flex items-center gap-2 rounded-full border border-[var(--color-brand)]/30 bg-[var(--color-brand)]/10 px-4 py-1.5 text-sm font-semibold text-[var(--color-brand)]">
+            <KeyRound size={15} />
+            Bring your own API keys — zero AI markup
+          </div>
+
           {/* Billing toggle */}
           <div className="mt-8 inline-flex items-center gap-3 rounded-full border border-[var(--color-border)] bg-[var(--color-surface-elevated)] px-5 py-2">
             <span className={`text-sm font-medium transition-colors ${!annual ? 'text-[var(--color-text)]' : 'text-[var(--color-text-muted)]'}`}>
@@ -77,7 +89,7 @@ export function PricingClient() {
               }}
             >
               <span style={{
-                position: 'absolute', top: 3, width: 18, height: 18, borderRadius: '50%',
+                position: 'absolute', top: 3, left: 0, width: 18, height: 18, borderRadius: '50%',
                 background: 'white', boxShadow: '0 1px 3px rgba(0,0,0,0.4)',
                 transition: 'transform 0.2s',
                 transform: annual ? 'translateX(23px)' : 'translateX(3px)',
@@ -115,7 +127,7 @@ export function PricingClient() {
                 <span className="text-4xl font-extrabold transition-all">{fmt(tier.monthly, annual)}</span>
                 {tier.monthly > 0 && (
                   <span className="ml-1 text-sm text-[var(--color-text-muted)]">
-                    /{annual ? 'mo, billed annually' : 'month'}
+                    /{'perSeat' in tier && tier.perSeat ? 'user/' : ''}{annual ? 'mo, billed annually' : 'month'}
                   </span>
                 )}
               </p>
@@ -192,7 +204,7 @@ export function PricingClient() {
         </div>
 
         <p className="mt-12 text-center text-sm text-[var(--color-text-muted)]">
-          All plans include access to the {brand.displayName} Desktop app. Billing integration coming soon — currently free during beta.
+          Every plan uses <span className="font-semibold text-[var(--color-text)]">your own provider API keys</span> — you pay each AI provider directly, with zero markup from {brand.displayName}. All plans include the Desktop app. Billing integration coming soon — currently free during beta.
         </p>
       </div>
     </div>

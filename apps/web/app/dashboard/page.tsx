@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { brand } from '@hivora/shared/brand'
 import { createApiClient, logout, getTokens } from '@/lib/auth'
-import { FolderKanban, Bot, Lock, Plus, LogOut, Download, Key, Play, Settings } from 'lucide-react'
+import { FolderKanban, Bot, Lock, Plus, LogOut, Download, Key, Play, Settings, Monitor } from 'lucide-react'
 import { toast } from 'sonner'
 import { ScrollAnimation } from '@/components/ScrollAnimation'
 
@@ -90,6 +90,18 @@ export default function DashboardPage() {
         <div className="flex items-center gap-3">
           <button onClick={() => router.push('/projects/new')} className="inline-flex items-center gap-2 rounded-lg bg-[var(--color-brand)] px-4 py-2 text-sm font-semibold text-white transition-all hover:brightness-110 active:scale-95">
             <Plus size={16} /> New Project
+          </button>
+          <button
+            onClick={() => {
+              const tokens = getTokens()
+              if (!tokens) { toast.error('Please sign in first'); return }
+              const params = new URLSearchParams({ at: tokens.accessToken, rt: tokens.refreshToken })
+              window.location.href = `hivora://auth?${params}`
+            }}
+            className="inline-flex items-center gap-2 rounded-lg border border-[var(--color-border)] px-4 py-2 text-sm font-medium text-[var(--color-text-muted)] transition-all hover:bg-[var(--color-surface-elevated)] hover:text-[var(--color-text)] hover:border-[var(--color-brand)]/50"
+            title="Open in Hivora Desktop"
+          >
+            <Monitor size={16} /> Open in Desktop
           </button>
           <button onClick={() => router.push('/settings')} className="rounded-lg border border-[var(--color-border)] p-2 text-[var(--color-text-muted)] transition-all hover:bg-[var(--color-surface-elevated)] hover:text-[var(--color-text)]" title="Settings">
             <Settings size={18} />

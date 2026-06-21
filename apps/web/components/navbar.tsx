@@ -84,18 +84,22 @@ export function Navbar() {
 
       {/* Mobile menu */}
       <div className={`overflow-hidden transition-all duration-200 sm:hidden ${open ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}>
-        <div className="border-t border-[var(--color-border)] px-4 pb-5 pt-3 space-y-1">
-          {links.map(l => (
-            <Link key={l.href} href={l.href}
-              className={`block rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
-                isActive(l.href)
-                  ? 'bg-[var(--color-brand)]/10 text-[var(--color-brand-light)]'
-                  : 'text-[var(--color-text-muted)] hover:bg-white/5 hover:text-[var(--color-text)]'
-              }`}>
-              {l.label}
-            </Link>
-          ))}
-          <div className="pt-2 flex flex-col gap-2">
+        <div className="border-t border-[var(--color-border)] bg-[var(--color-surface)]/95 backdrop-blur-xl">
+          {/* Nav links — 2×2 grid */}
+          <div className="grid grid-cols-2 gap-2 px-4 pt-3 pb-2">
+            {links.map(l => (
+              <Link key={l.href} href={l.href}
+                className={`rounded-lg px-3 py-2.5 text-sm font-medium transition-colors text-center ${
+                  isActive(l.href)
+                    ? 'bg-[var(--color-brand)]/10 text-[var(--color-brand-light)]'
+                    : 'text-[var(--color-text-muted)] hover:bg-white/5 hover:text-[var(--color-text)]'
+                }`}>
+                {l.label}
+              </Link>
+            ))}
+          </div>
+          {/* Auth buttons — full width, separated */}
+          <div className="border-t border-[var(--color-border)] px-4 pb-4 pt-3 flex flex-col gap-2">
             <Link href="/login"
               className="block rounded-lg border border-[var(--color-border)] px-4 py-2.5 text-center text-sm font-medium text-[var(--color-text-muted)] transition-colors hover:text-[var(--color-text)]">
               Sign In

@@ -6,6 +6,9 @@ dist/
 dist-electron/
 release/
 *.tsbuildinfo
+.next/
+out/
+build/
 
 # Environment
 .env

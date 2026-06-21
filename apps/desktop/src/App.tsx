@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import {
   FolderOpen, Lock, GitBranch,
   Settings, Cpu, X, Check, Wifi, Layers,
-  User, Package, Bell, Zap,
+  User, Package, Bell, Zap, ScrollText, AlertTriangle,
 } from 'lucide-react'
 import { useRealtime } from './hooks/useRealtime'
 import type { RealtimeEvent } from '@hivora/shared'
@@ -13,11 +13,12 @@ import { EmptyState } from './components/EmptyState'
 import { WelcomeScreen } from './components/WelcomeScreen'
 import { Sidebar } from './components/Sidebar'
 import type { SidebarSection } from './components/Sidebar'
-import type { Task, TaskStatus } from './components/TaskCard'
+import type { Task } from './components/TaskCard'
+import { Board } from './components/Board'
 
 type Mode = 'cloud' | 'local'
 
-interface Agent    { id: string; name: string; tool: string; logo: string; status: 'working' | 'idle' | 'error'; currentTask?: string; color: string }
+interface Agent    { id: string; name: string; tool: string; logo: string; status: 'working' | 'idle' | 'error'; mode: 'thinking' | 'fast'; currentTask?: string; color: string }
 interface FileLock { file: string; symbol: string; agentId: string }
 interface Project  { id: string; name: string }
 
@@ -26,13 +27,16 @@ interface Project  { id: string; name: string }
 export function App() {
   const [mode, setMode]       = useState<Mode>('local')
   const [section, setSection] = useState<SidebarSection>('explorer')
+  const [activeTab, setActiveTab] = useState<'workspace' | 'board'>('workspace')
 
   const [projects, setProjects]               = useState<Project[]>([])
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null)
-  const [tasks, setTasks]   = useState<Task[]>([])
+  const [tasks, setTasks] = useState<Task[]>([])
   const [agents, setAgents] = useState<Agent[]>([])
   const [locks, setLocks]   = useState<FileLock[]>([])
   const [syncing, setSyncing] = useState(false)
+  const [scannedFiles, setScannedFiles] = useState<any[]>([])
+  const [agentLogs, setAgentLogs] = useState<any[]>([])
 
   const [showAddTask,    setShowAddTask]    = useState(false)
   const [showAddProject, setShowAddProject] = useState(false)
@@ -47,6 +51,8 @@ export function App() {
   const [autoSync,      setAutoSync]      = useState(true)
   const [authed,       setAuthed]      = useState(false)
   const [showWelcome,  setShowWelcome] = useState(false)
+  const [user, setUser] = useState<{ name: string; email: string; avatarUrl: string | null } | null>(null)
+  const [showUserMenu, setShowUserMenu] = useState(false)
 
   const taskInputRef    = useRef<HTMLInputElement>(null)
   const projectInputRef = useRef<HTMLInputElement>(null)
@@ -57,13 +63,31 @@ export function App() {
   // ── Startup: check persisted tokens ─────────────────────────────────────────
   useEffect(() => {
     const token = localStorage.getItem('hivora_access_token')
+    const storedUser = localStorage.getItem('hivora_user')
     if (token) {
       setAuthed(true)
       setMode('cloud')
+      if (storedUser) { try { setUser(JSON.parse(storedUser)) } catch { /* ignore */ } }
       fetchCloudData()
     } else {
       setShowWelcome(true)
     }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Deep-link auth (hivora://auth?at=...&rt=...) ─────────────────────────
+  useEffect(() => {
+    eAPI?.onAuthDeepLink?.((tokens: { at: string; rt: string; name?: string; avatar?: string }) => {
+      if (!tokens.at || !tokens.rt) return
+      localStorage.setItem('hivora_access_token', tokens.at)
+      localStorage.setItem('hivora_refresh_token', tokens.rt)
+      const userData = { name: tokens.name ?? '', email: '', avatarUrl: tokens.avatar || null }
+      localStorage.setItem('hivora_user', JSON.stringify(userData))
+      setUser(userData)
+      setAuthed(true)
+      setMode('cloud')
+      setShowWelcome(false)
+      fetchCloudData()
+    })
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const apiRequest = async <T,>(method: string, path: string, body?: unknown): Promise<T> => {
@@ -112,10 +136,11 @@ export function App() {
         setAgents(cloudAgents.map(a => ({
           id: a.id, name: a.name,
           tool: a.type === 'ai' ? (a.provider || 'AI Agent') : 'Human Dev',
-          logo: a.name.toLowerCase().includes('claude') ? '/logos/claude.svg'
-              : a.name.toLowerCase().includes('cursor') ? '/logos/cursor.svg'
-              : '/logos/github-copilot.svg',
+          logo: a.name.toLowerCase().includes('claude') ? './logos/claude.svg'
+              : a.name.toLowerCase().includes('cursor') ? './logos/cursor.svg'
+              : './logos/github-copilot.svg',
           status: a.status === 'working' ? 'working' : 'idle',
+          mode: a.mode || 'thinking',
           currentTask: a.currentTask || undefined,
           color: a.name.toLowerCase().includes('claude') ? '#D97757' : '#8B5CF6',
         })))
@@ -145,14 +170,96 @@ export function App() {
   }, [selectedProjectId, authed])
 
   useRealtime(selectedProjectId || undefined, (event: RealtimeEvent) => {
-    if (mode === 'cloud' && authed && selectedProjectId)
-      if (['task:updated', 'agent:updated', 'lock:acquired', 'lock:released'].includes(event.type))
+    if (mode === 'cloud' && authed && selectedProjectId) {
+      if (['task:updated', 'agent:updated', 'lock:acquired', 'lock:released'].includes(event.type)) {
         fetchCloudData(selectedProjectId)
+      }
+      if (event.type === 'agent:log') {
+        const payload = event.payload as { agentId: string; message: string; timestamp: string };
+        setAgentLogs(prev => [payload, ...prev]);
+      }
+    }
   })
 
   useEffect(() => {
-    if (eAPI?.fsScan) eAPI.fsScan().then((res: any) => console.log(`[Scanner] ${res.length} files`)).catch(console.error)
+    if (eAPI?.fsScan) {
+      eAPI.fsScan().then((res: any) => {
+        setScannedFiles(res || [])
+        console.log(`[Scanner] ${res.length} files scanned.`)
+      }).catch(console.error)
+    }
   }, [eAPI])
+
+  const handleToggleLock = async (file: string, symbol: string) => {
+    if (!selectedProjectId) return
+    const isLocked = locks.some(l => l.file === file && l.symbol === symbol)
+    const humanAgent = agents.find(a => a.tool === 'Human Dev') || agents[0]
+    const agentId = humanAgent ? humanAgent.id : 'human-dev'
+
+    try {
+      if (isLocked) {
+        await apiRequest('POST', `/api/projects/${selectedProjectId}/locks/unlock`, {
+          file,
+          symbol,
+          agentId
+        })
+      } else {
+        await apiRequest('POST', `/api/projects/${selectedProjectId}/locks/lock`, {
+          file,
+          symbol,
+          agentId
+        })
+      }
+      fetchCloudData(selectedProjectId)
+    } catch (err) {
+      console.error('Failed to toggle lock:', err)
+    }
+  }
+
+  const handleUpdateAgentMode = async (agentId: string, agentMode: 'thinking' | 'fast') => {
+    if (!selectedProjectId) return
+    try {
+      await apiRequest('PATCH', `/api/projects/${selectedProjectId}/agents/${agentId}`, {
+        mode: agentMode
+      })
+      fetchCloudData(selectedProjectId)
+    } catch (err) {
+      console.error('Failed to update agent mode:', err)
+    }
+  }
+
+  const handleMoveTask = async (taskId: string, newStatus: string) => {
+    if (!selectedProjectId) return
+    const dbStatus = newStatus === 'in_progress' ? 'doing' : newStatus
+    try {
+      await apiRequest('PATCH', `/api/projects/${selectedProjectId}/tasks/${taskId}`, {
+        status: dbStatus
+      })
+      fetchCloudData(selectedProjectId)
+    } catch (err) {
+      console.error('Failed to move task:', err)
+    }
+  }
+
+  const handleApproveTask = async (taskId: string) => {
+    if (!selectedProjectId) return
+    try {
+      await apiRequest('POST', `/api/projects/${selectedProjectId}/tasks/${taskId}/approve`)
+      fetchCloudData(selectedProjectId)
+    } catch (err) {
+      console.error('Failed to approve task:', err)
+    }
+  }
+
+  const handleRejectTask = async (taskId: string) => {
+    if (!selectedProjectId) return
+    try {
+      await apiRequest('POST', `/api/projects/${selectedProjectId}/tasks/${taskId}/reject`)
+      fetchCloudData(selectedProjectId)
+    } catch (err) {
+      console.error('Failed to reject task:', err)
+    }
+  }
 
   useEffect(() => { if (showAddTask)    setTimeout(() => taskInputRef.current?.focus(),    50) }, [showAddTask])
   useEffect(() => { if (showAddProject) setTimeout(() => projectInputRef.current?.focus(), 50) }, [showAddProject])
@@ -174,9 +281,11 @@ export function App() {
   }, [selectedProjectId])
 
   // ── Handlers ─────────────────────────────────────────────────────────────────
-  const handleWelcomeLogin = (accessToken: string, refreshToken: string) => {
+  const handleWelcomeLogin = (accessToken: string, refreshToken: string, userData: { name: string; email: string; avatarUrl: string | null }) => {
     localStorage.setItem('hivora_access_token', accessToken)
     localStorage.setItem('hivora_refresh_token', refreshToken)
+    localStorage.setItem('hivora_user', JSON.stringify(userData))
+    setUser(userData)
     setAuthed(true)
     setMode('cloud')
     setShowWelcome(false)
@@ -186,6 +295,8 @@ export function App() {
   const handleLogout = () => {
     localStorage.removeItem('hivora_access_token')
     localStorage.removeItem('hivora_refresh_token')
+    localStorage.removeItem('hivora_user')
+    setUser(null)
     setAuthed(false); setProjects([]); setTasks([]); setAgents([]); setLocks([])
     setShowWelcome(true)
   }
@@ -220,18 +331,6 @@ export function App() {
     setNewProjectName(''); setShowAddProject(false); setSection('explorer')
   }
 
-  const handleTaskMove = async (id: string, status: TaskStatus) => {
-    if (mode === 'local') {
-      setTasks(t => t.map(task => task.id === id ? { ...task, status } : task))
-    } else {
-      try {
-        const dbStatus = status === 'in_progress' ? 'doing' : status
-        await apiRequest('PATCH', `/api/projects/${selectedProjectId}/tasks/${id}`, { status: dbStatus })
-        await fetchCloudData(selectedProjectId)
-      } catch (err) { console.error('Failed to update cloud task status', err) }
-    }
-  }
-
   const selectedProject = projects.find(p => p.id === selectedProjectId)
   const activeAgents    = agents.filter(a => a.status === 'working').length
 
@@ -243,11 +342,12 @@ export function App() {
       null,
       { label: 'Settings',   shortcut: 'Ctrl+,', action: () => setSection('settings') },
       null,
-      { label: 'Quit', shortcut: 'Alt+F4', action: () => eAPI?.windowClose() },
+      { label: 'Quit', shortcut: 'Alt+F4', action: () => eAPI?.windowQuit?.() ?? eAPI?.windowClose() },
     ]},
     { label: 'View', items: [
       { label: 'Explorer',  shortcut: 'Ctrl+Shift+E', action: () => setSection('explorer') },
       { label: 'Agents',    shortcut: 'Ctrl+Shift+A', action: () => setSection('agents')   },
+      { label: 'Live Logs', shortcut: 'Ctrl+Shift+G', action: () => setSection('logs')     },
       { label: 'AI Models', shortcut: 'Ctrl+Shift+M', action: () => setSection('models')   },
       { label: 'Locks',     shortcut: 'Ctrl+Shift+L', action: () => setSection('locks')    },
     ]},
@@ -278,7 +378,6 @@ export function App() {
         eAPI={eAPI}
         serverUrl={serverUrl}
         onLogin={handleWelcomeLogin}
-        onOffline={() => { setShowWelcome(false); setMode('local') }}
       />
     )
   }
@@ -293,14 +392,56 @@ export function App() {
         {/* Activity Bar */}
         <div style={{ width: 44, background: C.bg, borderRight: `1px solid ${C.border}`, display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 6, paddingBottom: 8, gap: 2, flexShrink: 0 }}>
           <div style={{ width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 4 }}>
-            <img src="/logo.svg" alt="Hivora" style={{ width: 22, height: 22, borderRadius: 5 }} />
+            <img src="./logo.svg" alt="Hivora" style={{ width: 22, height: 22, borderRadius: 5 }} />
           </div>
           {actBtn('explorer', <FolderOpen size={17} />, 'Explorer (Ctrl+Shift+E)')}
           {actBtn('agents',   <Cpu        size={17} />, 'Agents (Ctrl+Shift+A)')}
+          {actBtn('logs',     <ScrollText size={17} />, 'Live Logs (Ctrl+Shift+G)')}
           {actBtn('models',   <Layers     size={17} />, 'AI Models (Ctrl+Shift+M)')}
           {actBtn('locks',    <Lock       size={17} />, 'Locks (Ctrl+Shift+L)')}
           {actBtn('skills',   <Zap        size={17} />, 'Skills')}
           <div style={{ flex: 1 }} />
+
+          {/* User avatar */}
+          <div style={{ position: 'relative' }} onMouseLeave={() => setShowUserMenu(false)}>
+            <button
+              onClick={() => setShowUserMenu(v => !v)}
+              title={user?.name || user?.email || 'Account'}
+              style={{ width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8, border: 'none', cursor: 'pointer', background: 'none', padding: 0 }}
+            >
+              {user?.avatarUrl ? (
+                <img src={user.avatarUrl} alt={user.name || 'User'} style={{ width: 26, height: 26, borderRadius: '50%', objectFit: 'cover', border: `2px solid ${C.accent}50` }} />
+              ) : (
+                <div style={{ width: 26, height: 26, borderRadius: '50%', background: C.accent, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: 'white', border: `2px solid ${C.accent}60`, flexShrink: 0 }}>
+                  {(user?.name || user?.email || 'U').charAt(0).toUpperCase()}
+                </div>
+              )}
+            </button>
+            {showUserMenu && (
+              <div onClick={e => e.stopPropagation()} style={{ position: 'absolute', bottom: 0, left: 44, background: C.card, border: `1px solid ${C.muted}`, borderRadius: 8, padding: 12, width: 200, boxShadow: '0 8px 24px rgba(0,0,0,.6)', zIndex: 200 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                  {user?.avatarUrl ? (
+                    <img src={user.avatarUrl} alt="" style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+                  ) : (
+                    <div style={{ width: 32, height: 32, borderRadius: '50%', background: C.accent, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, color: 'white', flexShrink: 0 }}>
+                      {(user?.name || user?.email || 'U').charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                  <div style={{ overflow: 'hidden' }}>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: C.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user?.name || 'Anonymous'}</div>
+                    {user?.email && <div style={{ fontSize: 10, color: C.textMut, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user.email}</div>}
+                  </div>
+                </div>
+                <div style={{ height: 1, background: C.muted, margin: '8px 0' }} />
+                <button onClick={() => { setShowUserMenu(false); handleLogout() }}
+                  style={{ width: '100%', padding: '6px 8px', background: 'none', border: 'none', color: '#f87171', fontSize: 12, cursor: 'pointer', borderRadius: 4, textAlign: 'left' }}
+                  onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = '#ef444420'}
+                  onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'none'}
+                >Sign Out</button>
+              </div>
+            )}
+          </div>
+
           <button onClick={() => setSection('settings')} title="Settings (Ctrl+,)"
             style={{ width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8, border: 'none', background: section === 'settings' ? `${C.accent}15` : 'none', color: section === 'settings' ? C.accentLt : C.textMut, cursor: 'pointer', transition: 'all .15s' }}
             onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = C.hover; (e.currentTarget as HTMLElement).style.color = C.text }}
@@ -320,6 +461,10 @@ export function App() {
           webUrl={webUrl}
           notifications={notifications}
           autoSync={autoSync}
+          scannedFiles={scannedFiles}
+          agentLogs={agentLogs}
+          onToggleLock={handleToggleLock}
+          onUpdateAgentMode={handleUpdateAgentMode}
           onSelectProject={setSelectedProjectId}
           onShowAddProject={() => setShowAddProject(true)}
           onShowWelcome={() => setShowWelcome(true)}
@@ -336,26 +481,52 @@ export function App() {
           {/* Tab bar */}
           <div style={{ height: 36, display: 'flex', alignItems: 'flex-end', background: C.bg, borderBottom: `1px solid ${C.border}`, paddingLeft: 8, paddingRight: 8, gap: 2, flexShrink: 0 }}>
             {selectedProject && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 12px', height: '100%', background: C.surface, borderTop: `1px solid ${C.border}`, borderLeft: `1px solid ${C.border}`, borderRight: `1px solid ${C.border}`, borderRadius: '6px 6px 0 0', fontSize: 12, color: C.text, marginBottom: -1 }}>
-                <GitBranch size={11} style={{ color: C.accentLt }} />
-                {selectedProject.name}
-                <span style={{ color: C.textMut, fontSize: 10, marginLeft: 4 }}>workspace</span>
-              </div>
+              <>
+                <button
+                  onClick={() => setActiveTab('workspace')}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 6, padding: '0 12px', height: '100%',
+                    background: activeTab === 'workspace' ? C.surface : 'none',
+                    border: activeTab === 'workspace' ? `1px solid ${C.border}` : 'none',
+                    borderBottom: 'none', borderRadius: '6px 6px 0 0', fontSize: 12,
+                    color: activeTab === 'workspace' ? C.text : C.textMut, cursor: 'pointer',
+                    borderBottomLeftRadius: 0, borderBottomRightRadius: 0,
+                    marginBottom: -1, zIndex: 1
+                  }}
+                >
+                  <Cpu size={11} style={{ color: activeTab === 'workspace' ? C.accentLt : C.textMut }} />
+                  Workspace
+                </button>
+              </>
             )}
           </div>
 
-          {/* Workspace */}
+          {/* Workspace / Board content */}
+          {tasks.some(t => t.status === 'conflict') && (
+            <div style={{ background: '#ef4444', color: 'white', padding: '8px 16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontWeight: 600, fontSize: 12, boxShadow: '0 4px 12px rgba(239, 68, 68, 0.2)' }}>
+              <AlertTriangle size={14} />
+              <span><strong>Conflict Warning:</strong> Multiple agents or a user are modifying overlapping code symbols! Review the red tasks in the Kanban board.</span>
+            </div>
+          )}
           {mode === 'cloud' && !authed ? (
             <EmptyState icon={<User size={28} />} title="Cloud Mode" desc="Sign in to Hivora Cloud under the Settings panel to access your online projects." action={() => setSection('settings')} actionLabel="Sign In" />
           ) : !selectedProject ? (
             <EmptyState icon={<Package size={28} />} title="Select or create a project" desc="Pick a project from the Explorer panel. Your AI agents will pick up tasks and work on them in real-time — coordinate Claude, Cursor, and Cline all from one place." action={() => setShowAddProject(true)} actionLabel="New Project" />
-          ) : (
+          ) : activeTab === 'workspace' ? (
             <AgentWorkspace
-              tasks={tasks}
-              agents={agents}
+              projectId={selectedProject.id}
               projectName={selectedProject.name}
-              onAddTask={(title) => { if (title) { setNewTitle(title); setTimeout(() => handleAddTask(), 0) } else setShowAddTask(true) }}
-              onMoveTask={(id, status) => handleTaskMove(id, status as TaskStatus)}
+            />
+          ) : (
+            <Board
+              tasks={tasks}
+              projectName={selectedProject.name}
+              projectId={selectedProject.id}
+              apiRequest={apiRequest}
+              onMove={handleMoveTask}
+              onAddTask={() => setShowAddTask(true)}
+              onApprove={handleApproveTask}
+              onReject={handleRejectTask}
             />
           )}
         </div>
@@ -374,12 +545,6 @@ export function App() {
               onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'none'}
             ><Cpu size={11} /> {activeAgents} active</div>
           )}
-          {locks.length > 0 && (
-            <div onClick={() => setSection('locks')} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '2px 8px', borderRadius: 4, color: '#f59e0b', fontSize: 10, cursor: 'pointer', transition: 'background .1s' }}
-              onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.06)'}
-              onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'none'}
-            ><Lock size={11} /> {locks.length} locks</div>
-          )}
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           {mode === 'cloud' && authed && <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '2px 8px', borderRadius: 4, color: '#4ade80', fontSize: 10 }}><Wifi size={11} /> Cloud Sync</div>}
@@ -387,7 +552,10 @@ export function App() {
             onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.06)'}
             onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'none'}
           ><Layers size={11} /> {agents.length > 0 ? `${agents.length} agents` : 'no agents'}</div>
-          {notifications && <div style={{ padding: '2px 6px', borderRadius: 4, color: '#4a7ab5', cursor: 'pointer' }}><Bell size={11} /></div>}
+          <div title="Şu an yeni bildirim yok" style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '2px 6px', borderRadius: 4, color: '#4a7ab5', fontSize: 10, cursor: 'default', transition: 'background .1s' }}
+            onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.06)'}
+            onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'none'}
+          ><Bell size={11} /> 0</div>
         </div>
       </div>
 

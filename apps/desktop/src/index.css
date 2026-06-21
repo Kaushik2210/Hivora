@@ -12,6 +12,12 @@
 }
 
 html { color-scheme: dark; }
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
 body {
   margin: 0;
   background: var(--color-surface);
@@ -19,3 +25,29 @@ body {
   font-family: 'Inter', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
+
+/* ── Panel resize handle ─────────────────────────────────────── */
+.rph-col .rph-inner {
+  position: absolute;
+  top: 0; bottom: 0;
+  left: 4px; width: 4px;
+  border-radius: 2px;
+  background: #2a2a3e;
+  transition: background 0.15s;
+}
+.rph-col:hover .rph-inner,
+[data-resize-handle-active] .rph-inner {
+  background: #58a6ff;
+}
+
+/* ── xterm.js overrides ──────────────────────────────────────── */
+.xterm { height: 100% !important; }
+.xterm-viewport { background: transparent !important; }
+.xterm-screen { padding: 8px 12px; }
+
+/* ── Per-message action icons reveal on hover ────────────────── */
+.hv-msg:hover .hv-msg-actions { opacity: 1 !important; }
+
+/* ── Spinner ─────────────────────────────────────────────────── */
+@keyframes hv-spin { to { transform: rotate(360deg); } }
+.hv-spin { animation: hv-spin 0.8s linear infinite; }

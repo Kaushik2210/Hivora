@@ -2,16 +2,20 @@ import { useEffect, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
 import type { RealtimeEvent } from '@hivora/shared';
 
-const WS_URL = 'http://localhost:4000';
+// Configurable so two developers can connect to a shared remote server,
+// not just localhost. Set via Settings → Server URL (hivora_server_url).
+function resolveWsUrl(): string {
+  return localStorage.getItem('hivora_server_url') || 'http://localhost:4000';
+}
 
 export function useRealtime(projectId: string | undefined, onEvent: (event: RealtimeEvent) => void) {
   const socketRef = useRef<Socket | null>(null);
 
   useEffect(() => {
-    const token = sessionStorage.getItem('token') || '';
-    
+    const token = localStorage.getItem('hivora_access_token') || '';
+
     if (!socketRef.current) {
-      socketRef.current = io(WS_URL, {
+      socketRef.current = io(resolveWsUrl(), {
         auth: { token: token || 'dev-token' },
         query: projectId ? { projectId } : undefined,
       });

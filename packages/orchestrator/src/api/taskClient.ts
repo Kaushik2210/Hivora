@@ -66,4 +66,33 @@ export class HivoraTaskClient {
       `/api/projects/${this.opts.projectId}/tasks`,
     )
   }
+
+  async getTaskDiff(taskId: string): Promise<{ file: string; original: string; proposed: string; agentId?: string }> {
+    return this.request<{ file: string; original: string; proposed: string; agentId?: string }>(
+      'GET',
+      `/api/projects/${this.opts.projectId}/tasks/${taskId}/diff`,
+    )
+  }
+
+  async approveTask(taskId: string): Promise<any> {
+    return this.request<any>(
+      'POST',
+      `/api/projects/${this.opts.projectId}/tasks/${taskId}/approve`,
+    )
+  }
+
+  async rejectTask(taskId: string): Promise<any> {
+    return this.request<any>(
+      'POST',
+      `/api/projects/${this.opts.projectId}/tasks/${taskId}/reject`,
+    )
+  }
+
+  async updateAgentMode(agentId: string, mode: 'thinking' | 'fast'): Promise<any> {
+    return this.request<any>(
+      'PATCH',
+      `/api/projects/${this.opts.projectId}/agents/${agentId}`,
+      { mode },
+    )
+  }
 }

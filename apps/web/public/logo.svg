@@ -1,20 +1,33 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="none">
   <defs>
-    <linearGradient id="g" x1="0" y1="0" x2="128" y2="128" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#0f1623"/>
-      <stop offset="100%" stop-color="#1a2845"/>
+    <linearGradient id="bg" x1="0" y1="0" x2="128" y2="128" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#080d14"/>
+      <stop offset="100%" stop-color="#0d1520"/>
+    </linearGradient>
+    <linearGradient id="acc" x1="0" y1="0" x2="128" y2="128" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#06b6d4"/>
+      <stop offset="100%" stop-color="#0891b2"/>
     </linearGradient>
   </defs>
-  <rect width="128" height="128" rx="28" fill="url(#g)"/>
-  <g transform="translate(64,64)">
-    <polygon points="0,-32 27.7,-16 27.7,16 0,32 -27.7,16 -27.7,-16" fill="none" stroke="#2563eb" stroke-width="2.5" opacity="0.25"/>
-    <polygon points="0,-20 17.3,-10 17.3,10 0,20 -17.3,10 -17.3,-10" fill="none" stroke="#3b82f6" stroke-width="2.5" opacity="0.55"/>
-    <circle cx="0"     cy="0"   r="6"   fill="#60a5fa"/>
-    <circle cx="0"     cy="-20" r="3.5" fill="#60a5fa" opacity="0.75"/>
-    <circle cx="17.3"  cy="-10" r="3.5" fill="#60a5fa" opacity="0.75"/>
-    <circle cx="17.3"  cy="10"  r="3.5" fill="#60a5fa" opacity="0.75"/>
-    <circle cx="0"     cy="20"  r="3.5" fill="#60a5fa" opacity="0.75"/>
-    <circle cx="-17.3" cy="10"  r="3.5" fill="#60a5fa" opacity="0.75"/>
-    <circle cx="-17.3" cy="-10" r="3.5" fill="#60a5fa" opacity="0.75"/>
-  </g>
+
+  <!-- Arka plan -->
+  <rect width="128" height="128" rx="26" fill="url(#bg)"/>
+
+  <!-- H harfi — kalın, merkezli -->
+  <!-- Sol dikey -->
+  <rect x="28" y="32" width="14" height="64" rx="4" fill="url(#acc)"/>
+  <!-- Sağ dikey -->
+  <rect x="86" y="32" width="14" height="64" rx="4" fill="url(#acc)"/>
+  <!-- Yatay köprü -->
+  <rect x="28" y="57" width="72" height="14" rx="4" fill="url(#acc)"/>
+
+  <!-- Bağlantı düğümleri — AI agent noktaları -->
+  <circle cx="35"  cy="32" r="5" fill="#22d3ee"/>
+  <circle cx="35"  cy="96" r="5" fill="#22d3ee"/>
+  <circle cx="93"  cy="32" r="5" fill="#22d3ee"/>
+  <circle cx="93"  cy="96" r="5" fill="#22d3ee"/>
+
+  <!-- Merkez koordinasyon noktası -->
+  <circle cx="64" cy="64" r="6" fill="#67e8f9"/>
+  <circle cx="64" cy="64" r="3" fill="white"/>
 </svg>

@@ -34,7 +34,7 @@ export function TitleBar({ menus, mode, onToggleMode, eAPI, syncing }: TitleBarP
     }}>
       {/* Logo + title */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 10px', height: '100%', WebkitAppRegion: 'drag' } as any}>
-        <img src="/logo.svg" alt="Hivora" style={{ width: 18, height: 18, borderRadius: 4 }} />
+        <img src="./logo.svg" alt="Hivora" style={{ width: 18, height: 18, borderRadius: 4 }} />
         <span style={{ fontSize: 12, fontWeight: 600, color: '#a0b4cc', letterSpacing: '0.03em' }}>Hivora</span>
       </div>
 
@@ -120,7 +120,7 @@ export function TitleBar({ menus, mode, onToggleMode, eAPI, syncing }: TitleBarP
         {[
           { symbol: '─', title: 'Minimize', action: () => eAPI?.windowMinimize(), cls: 'wbtn' },
           { symbol: '□', title: 'Maximize', action: () => eAPI?.windowMaximize(), cls: 'wbtn' },
-          { symbol: '✕', title: 'Close',    action: () => eAPI?.windowClose(),    cls: 'wbtn wbtn-close' },
+          { symbol: '✕', title: 'Minimize to tray', action: () => eAPI?.windowClose(), cls: 'wbtn wbtn-close' },
         ].map(btn => (
           <button key={btn.title} title={btn.title} className={btn.cls} onClick={btn.action}
             style={{

@@ -1,39 +1,141 @@
 'use client'
 
 import { ScrollAnimation } from '@/components/ScrollAnimation'
-import { GitBranch, Lock, CheckCircle2, AlertCircle, Zap } from 'lucide-react'
+import { Lock, CheckCircle2, AlertCircle, Send } from 'lucide-react'
 import { useState, useEffect } from 'react'
 
-const agents = [
-  { name: 'Claude', role: 'Backend', status: 'active', task: 'Refactoring auth module', color: '#D97757', logo: '/logos/claude.svg', file: 'auth.ts', locks: 3 },
-  { name: 'Cursor', role: 'Frontend', status: 'active', task: 'Building dashboard UI', color: '#8B5CF6', logo: '/logos/cursor.svg', file: 'dashboard.tsx', locks: 2 },
-  { name: 'Copilot', role: 'DevOps', status: 'active', task: 'Configuring CI pipeline', color: '#8957E5', logo: '/logos/github-copilot.svg', file: 'workflow.yaml', locks: 1 },
+const panels = [
+  {
+    name: 'Claude Sonnet 4.6',
+    role: 'Backend refactor',
+    color: '#D97757',
+    logo: '/logos/claude.svg',
+    file: 'auth.ts',
+    messages: [
+      { role: 'user',      text: '/refactor Rewrite the auth module to use JWT rotation' },
+      { role: 'assistant', text: 'Analyzing auth.ts… Splitting into authService + tokenRotation. Acquiring lock on auth.ts:42–88.' },
+    ],
+  },
+  {
+    name: 'GPT-4o',
+    role: 'Frontend build',
+    color: '#10a37f',
+    logo: '/logos/openai.svg',
+    file: 'dashboard.tsx',
+    messages: [
+      { role: 'user',      text: 'Build the new dashboard header with user avatar and notifications' },
+      { role: 'assistant', text: 'Creating DashboardHeader component. Waiting for auth.ts lock release before importing token utils…' },
+    ],
+  },
+  {
+    name: 'Gemini 2.5 Flash',
+    role: 'Test suite',
+    color: '#4285F4',
+    logo: '/logos/gemini.svg',
+    file: 'auth.test.ts',
+    messages: [
+      { role: 'user',      text: '/test Write unit tests for the new token rotation logic' },
+      { role: 'assistant', text: 'Generating 12 test cases for tokenRotation(). Running against mock JWT store…' },
+    ],
+  },
 ]
 
-const events = [
-  { time: '12:34:01', agent: 'Claude', action: 'Acquired symbol lock', file: 'auth.ts:42', status: 'success' },
-  { time: '12:34:03', agent: 'Cursor', action: 'Waiting for lock release', file: 'dashboard.tsx:15', status: 'waiting' },
-  { time: '12:34:05', agent: 'Claude', action: 'Committed changes', file: 'auth.ts', status: 'success' },
-  { time: '12:34:07', agent: 'Cursor', action: 'Lock acquired', file: 'dashboard.tsx:15', status: 'success' },
-  { time: '12:34:09', agent: 'Copilot', action: 'Tests passed (4/7)', file: 'workflow.yaml', status: 'success' },
+const lockEvents = [
+  { time: '12:34:01', agent: 'Claude Sonnet 4.6',  color: '#D97757', action: 'Lock acquired',       file: 'auth.ts:42–88',        status: 'success' },
+  { time: '12:34:03', agent: 'GPT-4o',             color: '#10a37f', action: 'Waiting for lock',    file: 'auth.ts → token utils', status: 'waiting' },
+  { time: '12:34:07', agent: 'Claude Sonnet 4.6',  color: '#D97757', action: 'Lock released',       file: 'auth.ts',              status: 'success' },
+  { time: '12:34:08', agent: 'GPT-4o',             color: '#10a37f', action: 'Lock acquired',       file: 'auth.ts → token utils', status: 'success' },
+  { time: '12:34:11', agent: 'Gemini 2.5 Flash',   color: '#4285F4', action: 'Tests passed (12/12)', file: 'auth.test.ts',         status: 'success' },
 ]
 
-export function Demo() {
-  const [displayedEvents, setDisplayedEvents] = useState<typeof events>([])
-  const [activeAgent, setActiveAgent] = useState<string | null>(null)
+function PanelCard({ panel, animate }: { panel: typeof panels[0]; animate: boolean }) {
+  const [visibleMsgs, setVisibleMsgs] = useState(0)
 
   useEffect(() => {
-    let currentIndex = 0
-    const interval = setInterval(() => {
-      if (currentIndex < events.length) {
-        setDisplayedEvents(events.slice(0, currentIndex + 1))
-        currentIndex++
-      } else {
-        currentIndex = 0
-        setDisplayedEvents([])
+    if (!animate) { setVisibleMsgs(0); return }
+    setVisibleMsgs(0)
+    const t1 = setTimeout(() => setVisibleMsgs(1), 400)
+    const t2 = setTimeout(() => setVisibleMsgs(2), 1400)
+    return () => { clearTimeout(t1); clearTimeout(t2) }
+  }, [animate])
+
+  return (
+    <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)] overflow-hidden flex flex-col" style={{ minHeight: 220 }}>
+      {/* Header */}
+      <div className="flex items-center gap-2 px-3 py-2 border-b border-[var(--color-border)] bg-[var(--color-surface)]">
+        <div className="w-6 h-6 rounded-md flex items-center justify-center" style={{ background: panel.color + '20' }}>
+          <img src={panel.logo} alt={panel.name} className="w-4 h-4" onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none' }} />
+        </div>
+        <span className="text-xs font-semibold" style={{ color: panel.color }}>{panel.name}</span>
+        <span className="ml-auto text-xs text-[var(--color-text-muted)]">{panel.role}</span>
+        <span className="flex items-center gap-1 text-xs" style={{ color: panel.color }}>
+          <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: panel.color }} />
+          Live
+        </span>
+      </div>
+
+      {/* Messages */}
+      <div className="flex-1 p-3 flex flex-col gap-2 overflow-hidden">
+        {panel.messages.slice(0, visibleMsgs).map((msg, i) => (
+          <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-2 duration-300`}>
+            <div className={`text-xs px-2.5 py-1.5 rounded-lg max-w-[90%] leading-relaxed ${
+              msg.role === 'user'
+                ? 'bg-[var(--color-brand)]/20 border border-[var(--color-brand)]/30 text-[var(--color-text)]'
+                : 'bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-muted)]'
+            }`}>
+              {msg.text}
+            </div>
+          </div>
+        ))}
+        {visibleMsgs === 1 && (
+          <div className="flex justify-start animate-in fade-in duration-300">
+            <div className="text-xs px-2.5 py-1.5 rounded-lg bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-muted)]">
+              <span className="animate-pulse">▌</span>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Input */}
+      <div className="px-3 py-2 border-t border-[var(--color-border)]">
+        <div className="flex items-center gap-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 py-1.5">
+          <span className="flex-1 text-xs text-[var(--color-text-muted)] opacity-40">Message {panel.name.split(' ')[0]}…</span>
+          <Send size={10} className="text-[var(--color-text-muted)] opacity-40" />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export function Demo() {
+  const [displayedEvents, setDisplayedEvents] = useState<typeof lockEvents>([])
+  const [animate, setAnimate] = useState(false)
+
+  useEffect(() => {
+    let idx = 0
+    let running = true
+
+    const cycle = () => {
+      setDisplayedEvents([])
+      setAnimate(false)
+      setTimeout(() => setAnimate(true), 200)
+
+      const tick = () => {
+        if (!running) return
+        if (idx < lockEvents.length) {
+          setDisplayedEvents(lockEvents.slice(0, idx + 1))
+          idx++
+          setTimeout(tick, 900)
+        } else {
+          idx = 0
+          setTimeout(cycle, 2000)
+        }
       }
-    }, 800)
-    return () => clearInterval(interval)
+      setTimeout(tick, 600)
+    }
+
+    cycle()
+    return () => { running = false }
   }, [])
 
   return (
@@ -42,119 +144,51 @@ export function Demo() {
         <ScrollAnimation>
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-              Real-Time Coordination In Action
+              Three AIs. One Project. Zero Conflicts.
             </h2>
             <p className="text-[var(--color-text-muted)] text-lg max-w-3xl mx-auto">
-              Watch AI agents collaborate seamlessly with symbol-level locking, preventing conflicts while maximizing parallelism.
+              Open multiple panels, assign each a different AI model, and watch them code in parallel.
+              The orchestrator handles file locking automatically — no manual coordination needed.
             </p>
           </div>
         </ScrollAnimation>
 
         <ScrollAnimation delay={200}>
-          <div className="grid gap-6 lg:grid-cols-12">
-            {/* Agent Status Cards - left */}
-            <div className="lg:col-span-3 space-y-3">
-              <div className="text-xs font-semibold text-[var(--color-text-muted)] uppercase tracking-wider mb-3">Agents</div>
-              {agents.map((agent) => (
-                <div
-                  key={agent.name}
-                  onClick={() => setActiveAgent(activeAgent === agent.name ? null : agent.name)}
-                  className={`rounded-lg border transition-all cursor-pointer p-3 ${
-                    activeAgent === agent.name
-                      ? 'border-[var(--color-brand)] bg-[var(--color-brand)]/10'
-                      : 'border-[var(--color-border)] bg-[var(--color-surface-elevated)] hover:border-[var(--color-brand)]/50'
-                  }`}
-                >
-                  <div className="flex items-start justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-lg bg-[var(--color-surface)] flex items-center justify-center border border-[var(--color-border)]">
-                        <img src={agent.logo} alt={agent.name} className="w-6 h-6 object-contain" />
-                      </div>
-                      <div>
-                        <div className="text-sm font-semibold">{agent.name}</div>
-                        <div className="text-xs text-[var(--color-text-muted)]">{agent.role}</div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1.5 text-xs text-green-500">
-                      <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-                      Live
-                    </div>
-                  </div>
-                  <div className="text-xs text-[var(--color-text-muted)] mb-1">File: {agent.file}</div>
-                  <div className="text-xs mb-2 text-[var(--color-text-muted)]">{agent.task}</div>
-                  <div className="flex items-center gap-1 bg-[var(--color-surface)] rounded px-2 py-1">
-                    <Lock size={12} />
-                    <span className="text-xs font-mono">{agent.locks} active</span>
-                  </div>
-                </div>
+          <div className="space-y-6">
+            {/* Panels row */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {panels.map((panel) => (
+                <PanelCard key={panel.name} panel={panel} animate={animate} />
               ))}
             </div>
 
-            {/* Main Orchestration Board - right */}
-            <div className="lg:col-span-9 space-y-4">
-              {/* Locks Visualization */}
-              <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-4">
-                <div className="flex items-center gap-2 mb-4">
-                  <Zap size={16} className="text-[var(--color-brand)]" />
-                  <span className="text-sm font-semibold">Symbol-Level Locks</span>
-                </div>
-                <div className="space-y-2">
-                  {agents.map((agent) => (
-                    <div key={`lock-${agent.name}`} className="flex items-center gap-3">
-                      <div className="text-xs font-mono text-[var(--color-text-muted)] w-16">{agent.file}</div>
-                      <div className="flex-1 h-8 bg-[var(--color-surface)] rounded border border-[var(--color-border)] overflow-hidden flex items-center px-2">
-                        <div
-                          className="h-6 rounded transition-all"
-                          style={{
-                            backgroundColor: agent.color,
-                            width: activeAgent === agent.name ? '100%' : '60%',
-                            opacity: 0.6,
-                          }}
-                        />
-                      </div>
-                      <div className="text-xs font-mono text-green-500">Active</div>
-                    </div>
-                  ))}
-                </div>
+            {/* Orchestrator bar */}
+            <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)] overflow-hidden">
+              <div className="px-4 py-3 border-b border-[var(--color-border)] bg-[var(--color-surface)] flex items-center gap-2">
+                <Lock size={14} className="text-[var(--color-brand)]" />
+                <span className="text-sm font-semibold">Hivora Orchestrator — Live Lock Stream</span>
+                <span className="ml-auto text-xs text-[var(--color-text-muted)] bg-[var(--color-brand)]/10 border border-[var(--color-brand)]/20 rounded-full px-2 py-0.5">
+                  simulated
+                </span>
               </div>
 
-              {/* Event Log */}
-              <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-elevated)] overflow-hidden">
-                <div className="px-4 py-3 border-b border-[var(--color-border)] bg-[var(--color-surface)] flex items-center gap-2">
-                  <GitBranch size={14} className="text-[var(--color-brand)]" />
-                  <span className="text-sm font-semibold">Live Event Stream</span>
-                  <span className="ml-auto text-xs text-[var(--color-text-muted)]">Simulated</span>
-                </div>
-
-                <div className="max-h-64 overflow-y-auto font-mono text-xs">
-                  {displayedEvents.length === 0 ? (
-                    <div className="p-4 text-[var(--color-text-muted)] text-center">Waiting for events...</div>
-                  ) : (
-                    displayedEvents.map((event, idx) => (
-                      <div
-                        key={idx}
-                        className="px-4 py-2 border-b border-[var(--color-border)] flex items-start gap-3 hover:bg-[var(--color-surface)] transition-colors animate-in fade-in slide-in-from-left-2 duration-300"
-                      >
-                        <span className="text-[var(--color-text-muted)] min-w-fit">{event.time}</span>
-                        <div className="w-6 h-6 flex-shrink-0">
-                          <img
-                            src={agents.find(a => a.name === event.agent)?.logo}
-                            alt={event.agent}
-                            className="w-6 h-6 object-contain"
-                          />
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            {event.status === 'success' && <CheckCircle2 size={12} className="text-green-500" />}
-                            {event.status === 'waiting' && <AlertCircle size={12} className="text-yellow-500" />}
-                            <span>{event.action}</span>
-                          </div>
-                          <div className="text-[var(--color-text-muted)] text-xs mt-0.5">{event.file}</div>
-                        </div>
+              <div className="font-mono text-xs" style={{ minHeight: 140 }}>
+                {displayedEvents.length === 0 ? (
+                  <div className="p-4 text-[var(--color-text-muted)] text-center">Waiting for events…</div>
+                ) : (
+                  displayedEvents.map((ev, i) => (
+                    <div key={i} className="px-4 py-2 border-b border-[var(--color-border)] flex items-center gap-3 hover:bg-[var(--color-surface)] transition-colors animate-in fade-in slide-in-from-left-2 duration-300">
+                      <span className="text-[var(--color-text-muted)] min-w-[68px]">{ev.time}</span>
+                      <span className="font-semibold min-w-[148px] truncate" style={{ color: ev.color }}>{ev.agent}</span>
+                      <div className="flex items-center gap-1.5 flex-1">
+                        {ev.status === 'success' && <CheckCircle2 size={11} className="text-green-500 flex-shrink-0" />}
+                        {ev.status === 'waiting' && <AlertCircle  size={11} className="text-yellow-500 flex-shrink-0" />}
+                        <span className="text-[var(--color-text)]">{ev.action}</span>
                       </div>
-                    ))
-                  )}
-                </div>
+                      <span className="text-[var(--color-text-muted)] truncate max-w-[140px]">{ev.file}</span>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           </div>

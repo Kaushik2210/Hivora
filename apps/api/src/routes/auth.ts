@@ -56,15 +56,17 @@ function publicUser(u: {
   emailVerified: boolean;
   createdAt: Date;
   updatedAt: Date;
-}): User {
+  avatarUrl?: string | null;
+}): User & { avatarUrl: string | null } {
   return {
     id: u.id,
     email: u.email,
     name: u.name,
     emailVerified: u.emailVerified,
+    avatarUrl: u.avatarUrl ?? null,
     createdAt: u.createdAt.toISOString(),
     updatedAt: u.updatedAt.toISOString(),
-  };
+  } as User & { avatarUrl: string | null };
 }
 
 async function buildTokens(userId: string, meta?: { userAgent?: string; ipAddress?: string }): Promise<AuthTokens> {
@@ -300,3 +302,107 @@ authRouter.post(
     res.json(ok({ success: true }));
   }),
 );
+
+// ── GitHub OAuth (direct — no passport dependency) ────────────────────────────
+
+authRouter.get('/github', (req, res) => {
+  const { clientId } = config.github
+  if (!clientId) {
+    res.status(503).json(fail('OAUTH_NOT_CONFIGURED', 'GitHub OAuth is not configured'))
+    return
+  }
+  // Encode the originating client (web | desktop) into the state so the callback
+  // knows where to redirect afterwards (web page vs. hivora:// deep link).
+  const client = req.query.client === 'desktop' ? 'desktop' : 'web'
+  const state = `${randomToken()}.${client}`
+  const params = new URLSearchParams({
+    client_id: clientId,
+    redirect_uri: `${config.apiBaseUrl}/api/auth/github/callback`,
+    scope: 'user:email',
+    state,
+  })
+  res.redirect(`https://github.com/login/oauth/authorize?${params}`)
+})
+
+authRouter.get(
+  '/github/callback',
+  authLimiter,
+  asyncHandler(async (req, res) => {
+    const { code, error, state } = req.query as { code?: string; error?: string; state?: string }
+    const isDesktop = typeof state === 'string' && state.endsWith('.desktop')
+    const frontendError = `${config.appUrl}/login?error=github`
+
+    if (error || !code) {
+      res.redirect(frontendError)
+      return
+    }
+
+    // Exchange code for access token
+    const tokenRes = await fetch('https://github.com/login/oauth/access_token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({
+        client_id: config.github.clientId,
+        client_secret: config.github.clientSecret,
+        code,
+        redirect_uri: `${config.apiBaseUrl}/api/auth/github/callback`,
+      }),
+    })
+    const tokenData = await tokenRes.json() as { access_token?: string; error?: string }
+    if (!tokenData.access_token) { res.redirect(frontendError); return }
+
+    // Get GitHub user profile
+    const profileRes = await fetch('https://api.github.com/user', {
+      headers: { Authorization: `Bearer ${tokenData.access_token}`, 'User-Agent': 'Hivora' },
+    })
+    const profile = await profileRes.json() as { id: number; name?: string; email?: string; login: string; avatar_url?: string }
+
+    // Get primary email if not public
+    let email = profile.email
+    if (!email) {
+      const emailsRes = await fetch('https://api.github.com/user/emails', {
+        headers: { Authorization: `Bearer ${tokenData.access_token}`, 'User-Agent': 'Hivora' },
+      })
+      const emails = await emailsRes.json() as Array<{ email: string; primary: boolean; verified: boolean }>
+      email = emails.find(e => e.primary && e.verified)?.email ?? emails[0]?.email
+    }
+    if (!email) { res.redirect(frontendError); return }
+
+    const githubId = String(profile.id)
+
+    // Upsert user
+    let user = await prisma.user.findFirst({ where: { githubId } })
+    if (!user) {
+      user = await prisma.user.findUnique({ where: { email } })
+      if (user) {
+        // Link GitHub to existing account
+        user = await prisma.user.update({ where: { id: user.id }, data: { githubId, avatarUrl: profile.avatar_url } })
+      } else {
+        // New user via GitHub
+        user = await prisma.user.create({
+          data: {
+            email,
+            name: profile.name ?? profile.login,
+            githubId,
+            avatarUrl: profile.avatar_url,
+            emailVerified: true,
+          },
+        })
+      }
+    }
+
+    const tokens = await buildTokens(user.id, { ipAddress: getClientIp(req), userAgent: getUserAgent(req) })
+    const params = new URLSearchParams({
+      at: tokens.accessToken,
+      rt: tokens.refreshToken,
+      name: user.name ?? user.email,
+      avatar: user.avatarUrl ?? '',
+    })
+    // Desktop: hand tokens back via the hivora:// deep link; Web: via the callback page
+    if (isDesktop) {
+      res.redirect(`hivora://auth?${params}`)
+    } else {
+      res.redirect(`${config.appUrl}/auth/callback?${params}`)
+    }
+  }),
+)

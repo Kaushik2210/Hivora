@@ -41,16 +41,59 @@ export function createRealtimeServer(httpServer: HttpServer): IoServer {
       socket.join(`project:${projectId}`);
     }
 
-    socket.on('subscribe:project', (projectId: string) => {
+    socket.on('subscribe:project', (payload: string | { projectId: string; user?: { name?: string; plan?: string } }) => {
+      const projectId = typeof payload === 'string' ? payload : payload.projectId;
+      const user = typeof payload === 'object' ? payload.user : undefined;
       socket.join(`project:${projectId}`);
+      socket.data.projectId = projectId;
+      socket.data.userName  = user?.name  ?? 'Guest';
+      socket.data.userPlan  = user?.plan  ?? 'free';
+      socket.to(`project:${projectId}`).emit('user:joined', {
+        socketId: socket.id,
+        name:     socket.data.userName,
+        plan:     socket.data.userPlan,
+      });
     });
 
     socket.on('unsubscribe:project', (projectId: string) => {
+      socket.to(`project:${projectId}`).emit('user:left', { socketId: socket.id });
       socket.leave(`project:${projectId}`);
     });
 
+    // Admin kick: only broadcasts; client-side auth is sufficient for now
+    socket.on('kick:user', ({ socketId, projectId }: { socketId: string; projectId: string }) => {
+      const target = io.sockets.sockets.get(socketId);
+      if (target) {
+        target.emit('kicked', { by: socket.id });
+        target.leave(`project:${projectId}`);
+        socket.to(`project:${projectId}`).emit('user:left', { socketId });
+      }
+    });
+
+    // Panel collaboration events
+    socket.on('panel:open', (data: { projectId: string; panelId: string; modelId: string }) => {
+      socket.to(`project:${data.projectId}`).emit('panel:open', { ...data, socketId: socket.id });
+    });
+
+    socket.on('panel:close', (data: { projectId: string; panelId: string }) => {
+      socket.to(`project:${data.projectId}`).emit('panel:close', { ...data, socketId: socket.id });
+    });
+
+    socket.on('panel:typing', (data: { projectId: string; panelId: string; modelId: string }) => {
+      socket.to(`project:${data.projectId}`).emit('panel:typing', { ...data, socketId: socket.id });
+    });
+
+    socket.on('panel:message', (data: { projectId: string; panelId: string; modelId: string; content: string }) => {
+      socket.to(`project:${data.projectId}`).emit('panel:message', { ...data, socketId: socket.id });
+    });
+
     socket.on('disconnect', () => {
-      // rooms auto-cleaned
+      // Notify all project rooms this user left
+      socket.rooms.forEach(room => {
+        if (room.startsWith('project:')) {
+          socket.to(room).emit('user:left', { socketId: socket.id });
+        }
+      });
     });
   });
 

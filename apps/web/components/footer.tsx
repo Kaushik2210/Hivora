@@ -4,15 +4,17 @@ export function Footer() {
   return (
     <footer className="border-t border-[var(--color-border)] bg-[var(--color-surface-elevated)]">
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-        <div className="grid gap-8 sm:grid-cols-3">
-          <div className="sm:col-span-1">
+        <div className="grid grid-cols-2 gap-x-8 gap-y-8 sm:grid-cols-4">
+          {/* Brand — full width on mobile */}
+          <div className="col-span-2 sm:col-span-1">
             <div className="flex items-center gap-2 text-lg font-bold">
               <img src="/logo.svg" alt={brand.displayName} className="h-7 w-7" />
               {brand.displayName}
             </div>
             <p className="mt-2 text-sm text-[var(--color-text-muted)]">{brand.tagline}</p>
           </div>
-          <div>
+          {/* Product — left aligned, beside Legal on mobile */}
+          <div className="text-left">
             <h4 className="mb-3 text-sm font-semibold">Product</h4>
             <div className="space-y-2 text-sm text-[var(--color-text-muted)]">
               <a href="/pricing" className="block hover:text-[var(--color-text)] transition-colors">Pricing</a>
@@ -20,7 +22,8 @@ export function Footer() {
               <a href="/contact" className="block hover:text-[var(--color-text)] transition-colors">Contact Sales</a>
             </div>
           </div>
-          <div>
+          {/* Legal — right aligned on mobile */}
+          <div className="text-left">
             <h4 className="mb-3 text-sm font-semibold">Legal</h4>
             <div className="space-y-2 text-sm text-[var(--color-text-muted)]">
               <a href="/privacy" className="block hover:text-[var(--color-text)] transition-colors">Privacy Policy</a>

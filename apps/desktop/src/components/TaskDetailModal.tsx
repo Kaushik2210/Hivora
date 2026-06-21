@@ -30,7 +30,7 @@ export function TaskDetailModal({ task, onClose, onMove }: TaskDetailModalProps)
   if (!task) return null
 
   const statusLabel: Record<TaskStatus, string> = {
-    todo: 'To Do', in_progress: 'In Progress', done: 'Done',
+    todo: 'To Do', in_progress: 'In Progress', review_pending: 'Review Pending', done: 'Done', conflict: 'Conflict',
   }
   const priorityColor: Record<string, string> = {
     high: '#f87171', medium: '#fbbf24', low: C.textMut,

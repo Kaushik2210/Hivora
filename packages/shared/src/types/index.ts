@@ -3,7 +3,7 @@ export type UserRole = 'owner' | 'admin' | 'member';
 export type AgentType = 'ai' | 'human';
 export type AgentStatus = 'idle' | 'working' | 'offline';
 
-export type TaskStatus = 'todo' | 'doing' | 'done' | 'conflict';
+export type TaskStatus = 'todo' | 'doing' | 'review_pending' | 'done' | 'conflict';
 export type TaskPriority = 'low' | 'medium' | 'high';
 
 export type SubscriptionTier = 'free' | 'pro' | 'team' | 'enterprise';
@@ -100,7 +100,7 @@ export interface ApiOk<T> {
 export type ApiResponse<T> = ApiOk<T> | ApiError;
 
 export interface RealtimeEvent {
-  type: 'lock:acquired' | 'lock:released' | 'task:created' | 'task:updated' | 'task:moved' | 'agent:updated' | 'project:updated';
+  type: 'lock:acquired' | 'lock:released' | 'task:created' | 'task:updated' | 'task:moved' | 'agent:updated' | 'project:updated' | 'agent:log' | 'agent:healing';
   payload: unknown;
   organizationId: string;
   projectId?: string;

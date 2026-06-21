@@ -1,8 +1,14 @@
 import { useState } from 'react'
-import { Circle, Clock, CheckCircle2 } from 'lucide-react'
+import { Circle, Clock, CheckCircle2, AlertTriangle } from 'lucide-react'
 import { C } from '../theme'
 
-export type TaskStatus = 'todo' | 'in_progress' | 'done'
+export type TaskStatus = 'todo' | 'in_progress' | 'review_pending' | 'done' | 'conflict'
+
+export interface TaskChange {
+  file: string
+  before: string
+  after: string
+}
 
 export interface Task {
   id: string
@@ -11,6 +17,7 @@ export interface Task {
   status: TaskStatus
   priority: 'high' | 'medium' | 'low'
   assignedTo?: string
+  change?: TaskChange
 }
 
 interface TaskCardProps {
@@ -18,9 +25,12 @@ interface TaskCardProps {
   colId: TaskStatus
   onMove: (id: string, status: TaskStatus) => void
   onClick: (task: Task) => void
+  onApprove?: (id: string) => void
+  onReject?: (id: string) => void
+  onReview?: (task: Task) => void
 }
 
-export function TaskCard({ task, colId, onMove, onClick }: TaskCardProps) {
+export function TaskCard({ task, colId, onMove, onClick, onReview }: TaskCardProps) {
   const [hovered, setHovered] = useState(false)
 
   const priorityStyle: Record<string, { bg: string; color: string }> = {
@@ -30,14 +40,16 @@ export function TaskCard({ task, colId, onMove, onClick }: TaskCardProps) {
   }
   const ps = priorityStyle[task.priority]
 
+  const isConflict = task.status === 'conflict'
+
   return (
     <div
       onClick={() => onClick(task)}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
-        background: C.card,
-        border: `1px solid ${hovered ? `${C.accent}55` : C.border2}`,
+        background: isConflict ? '#ef44440c' : C.card,
+        border: `1px solid ${isConflict ? '#ef444488' : hovered ? `${C.accent}55` : C.border2}`,
         borderRadius: 12, padding: 12, cursor: 'pointer',
         transition: 'border-color 0.15s, box-shadow 0.15s, transform 0.15s',
         transform: hovered ? 'translateY(-1px)' : 'translateY(0)',
@@ -45,11 +57,18 @@ export function TaskCard({ task, colId, onMove, onClick }: TaskCardProps) {
       }}
     >
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 8 }}>
-        {colId === 'todo'        && <Circle       size={12} style={{ color: C.textMut,  flexShrink: 0, marginTop: 2 }} />}
-        {colId === 'in_progress' && <Clock        size={12} style={{ color: C.accentLt, flexShrink: 0, marginTop: 2 }} />}
-        {colId === 'done'        && <CheckCircle2 size={12} style={{ color: '#22c55e',  flexShrink: 0, marginTop: 2 }} />}
+        {isConflict ? (
+          <AlertTriangle size={12} style={{ color: '#ef4444', flexShrink: 0, marginTop: 2 }} />
+        ) : (
+          <>
+            {colId === 'todo'        && <Circle       size={12} style={{ color: C.textMut,  flexShrink: 0, marginTop: 2 }} />}
+            {colId === 'in_progress' && <Clock        size={12} style={{ color: C.accentLt, flexShrink: 0, marginTop: 2 }} />}
+            {colId === 'review_pending' && <Clock     size={12} style={{ color: '#fbbf24',  flexShrink: 0, marginTop: 2 }} />}
+            {colId === 'done'        && <CheckCircle2 size={12} style={{ color: '#22c55e',  flexShrink: 0, marginTop: 2 }} />}
+          </>
+        )}
         <span style={{
-          fontSize: 12, fontWeight: 500, lineHeight: 1.4, flex: 1, color: colId === 'done' ? C.textMut : C.text,
+          fontSize: 12, fontWeight: 500, lineHeight: 1.4, flex: 1, color: isConflict ? '#f87171' : colId === 'done' ? C.textMut : C.text,
           textDecoration: colId === 'done' ? 'line-through' : 'none',
         }}>
           {task.title}
@@ -62,25 +81,45 @@ export function TaskCard({ task, colId, onMove, onClick }: TaskCardProps) {
         </p>
       )}
 
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingLeft: 20 }}>
-        <span style={{ fontSize: 9, padding: '2px 6px', borderRadius: 4, fontWeight: 600, background: ps.bg, color: ps.color }}>
-          {task.priority}
-        </span>
-        {colId !== 'done' && (
-          <button
-            onClick={ev => { ev.stopPropagation(); onMove(task.id, colId === 'todo' ? 'in_progress' : 'done') }}
-            style={{
-              fontSize: 9, color: C.accentLt,
-              background: `${C.accent}18`, border: 'none',
-              padding: '2px 7px', borderRadius: 4, cursor: 'pointer',
-              opacity: hovered ? 1 : 0.35,
-              transition: 'opacity 0.15s, background 0.1s',
-            }}
-            onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = `${C.accent}40`}
-            onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = `${C.accent}18`}
-          >
-            {colId === 'todo' ? 'Start →' : 'Done →'}
-          </button>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingLeft: 20 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+          <span style={{ fontSize: 9, padding: '2px 6px', borderRadius: 4, fontWeight: 600, background: ps.bg, color: ps.color }}>
+            {task.priority}
+          </span>
+          {colId !== 'done' && colId !== 'review_pending' && (
+            <button
+              onClick={ev => { ev.stopPropagation(); onMove(task.id, colId === 'todo' ? 'in_progress' : 'done') }}
+              style={{
+                fontSize: 9, color: C.accentLt,
+                background: `${C.accent}18`, border: 'none',
+                padding: '2px 7px', borderRadius: 4, cursor: 'pointer',
+                opacity: hovered ? 1 : 0.35,
+                transition: 'opacity 0.15s, background 0.1s',
+              }}
+              onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = `${C.accent}40`}
+              onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = `${C.accent}18`}
+            >
+              {colId === 'todo' ? 'Start →' : 'Done →'}
+            </button>
+          )}
+        </div>
+
+        {colId === 'review_pending' && (
+          <div style={{ display: 'flex', gap: 6, width: '100%', marginTop: 2 }} onClick={ev => ev.stopPropagation()}>
+            <button
+              onClick={ev => { ev.stopPropagation(); onReview?.(task) }}
+              style={{
+                flex: 1, fontSize: 9, color: C.accentLt,
+                background: `${C.accent}18`, border: `1px solid ${C.accent}40`,
+                padding: '4px 6px', borderRadius: 6, cursor: 'pointer',
+                fontWeight: 600, transition: 'background 0.1s',
+              }}
+              onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = `${C.accent}30`}
+              onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = `${C.accent}18`}
+            >
+              Review Changes
+            </button>
+          </div>
         )}
       </div>
     </div>

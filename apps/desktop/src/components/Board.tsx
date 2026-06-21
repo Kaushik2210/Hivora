@@ -10,20 +10,25 @@ import { C } from '../theme'
 import { TaskCard } from './TaskCard'
 import { TaskDetailModal } from './TaskDetailModal'
 import { EmptyState } from './EmptyState'
+import { DiffPreviewModal, type FileChange, type DiffAnalytics } from './DiffPreviewModal'
 import type { Task, TaskStatus } from './TaskCard'
 
 const COLUMNS: { id: TaskStatus; label: string; dot: string }[] = [
   { id: 'todo',        label: 'To Do',       dot: C.textDim  },
   { id: 'in_progress', label: 'In Progress', dot: C.accentLt },
+  { id: 'review_pending', label: 'Review Pending', dot: '#fbbf24' },
   { id: 'done',        label: 'Done',        dot: '#22c55e'  },
 ]
 
-function DroppableColumn({ col, tasks, onMove, onTaskClick, activeId }: {
+function DroppableColumn({ col, tasks, onMove, onTaskClick, activeId, onApprove, onReject, onReview }: {
   col: typeof COLUMNS[0]
   tasks: Task[]
   onMove: (id: string, status: TaskStatus) => void
   onTaskClick: (task: Task) => void
   activeId: string | null
+  onApprove?: (id: string) => void
+  onReject?: (id: string) => void
+  onReview?: (task: Task) => void
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: col.id })
 
@@ -46,7 +51,7 @@ function DroppableColumn({ col, tasks, onMove, onTaskClick, activeId }: {
       }}>
         <SortableContext items={tasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
           {tasks.map(task => (
-            <SortableTaskCard key={task.id} task={task} colId={col.id} onMove={onMove} onClick={onTaskClick} isDragging={activeId === task.id} />
+            <SortableTaskCard key={task.id} task={task} colId={col.id} onMove={onMove} onClick={onTaskClick} isDragging={activeId === task.id} onApprove={onApprove} onReject={onReject} onReview={onReview} />
           ))}
         </SortableContext>
         {tasks.length === 0 && (
@@ -61,11 +66,14 @@ function DroppableColumn({ col, tasks, onMove, onTaskClick, activeId }: {
   )
 }
 
-function SortableTaskCard({ task, colId, onMove, onClick, isDragging }: {
+function SortableTaskCard({ task, colId, onMove, onClick, isDragging, onApprove, onReject, onReview }: {
   task: Task; colId: TaskStatus
   onMove: (id: string, status: TaskStatus) => void
   onClick: (task: Task) => void
   isDragging: boolean
+  onApprove?: (id: string) => void
+  onReject?: (id: string) => void
+  onReview?: (task: Task) => void
 }) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: task.id })
 
@@ -80,7 +88,7 @@ function SortableTaskCard({ task, colId, onMove, onClick, isDragging }: {
       {...attributes}
       {...listeners}
     >
-      <TaskCard task={task} colId={colId} onMove={onMove} onClick={onClick} />
+      <TaskCard task={task} colId={colId} onMove={onMove} onClick={onClick} onApprove={onApprove} onReject={onReject} onReview={onReview} />
     </div>
   )
 }
@@ -88,15 +96,44 @@ function SortableTaskCard({ task, colId, onMove, onClick, isDragging }: {
 interface BoardProps {
   tasks: Task[]
   projectName: string
+  projectId?: string
+  apiRequest?: <T>(method: string, path: string, body?: unknown) => Promise<T>
   onMove: (id: string, status: TaskStatus) => void
   onAddTask: () => void
+  onApprove?: (id: string) => void
+  onReject?: (id: string) => void
 }
 
-export function Board({ tasks, projectName, onMove, onAddTask }: BoardProps) {
+export function Board({ tasks, projectName, projectId, apiRequest, onMove, onAddTask, onApprove, onReject }: BoardProps) {
   const [activeId, setActiveId] = useState<string | null>(null)
   const [selectedTask, setSelectedTask] = useState<Task | null>(null)
+  const [reviewTask, setReviewTask] = useState<Task | null>(null)
+  const [diffData, setDiffData] = useState<{ file: string; original: string; proposed: string; analytics?: DiffAnalytics } | null>(null)
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }))
+
+  const handleReview = async (task: Task) => {
+    setReviewTask(task)
+    setDiffData(null)
+    if (!projectId) {
+      const s = sampleChangeFor(task)
+      setDiffData({ file: 'src/local.tsx', original: s.before, proposed: s.after })
+      return
+    }
+    if (!apiRequest) {
+      const s = sampleChangeFor(task)
+      setDiffData({ file: 'src/offline.tsx', original: s.before, proposed: s.after })
+      return
+    }
+    try {
+      const data = await apiRequest<{ file: string; original: string; proposed: string; analytics?: DiffAnalytics }>('GET', `/api/projects/${projectId}/tasks/${task.id}/diff`)
+      setDiffData(data)
+    } catch (err) {
+      console.error('Failed to fetch diff:', err)
+      const s = sampleChangeFor(task)
+      setDiffData({ file: 'src/fallback.tsx', original: s.before, proposed: s.after })
+    }
+  }
 
   const handleDragStart = (e: DragStartEvent) => setActiveId(String(e.active.id))
 
@@ -151,10 +188,16 @@ export function Board({ tasks, projectName, onMove, onAddTask }: BoardProps) {
               <DroppableColumn
                 key={col.id}
                 col={col}
-                tasks={tasks.filter(t => t.status === col.id)}
+                tasks={col.id === 'in_progress'
+                  ? tasks.filter(t => t.status === 'in_progress' || t.status === 'conflict')
+                  : tasks.filter(t => t.status === col.id)
+                }
                 onMove={onMove}
                 onTaskClick={setSelectedTask}
                 activeId={activeId}
+                onApprove={onApprove}
+                onReject={onReject}
+                onReview={handleReview}
               />
             ))}
           </div>
@@ -170,6 +213,28 @@ export function Board({ tasks, projectName, onMove, onAddTask }: BoardProps) {
       </DndContext>
 
       <TaskDetailModal task={selectedTask} onClose={() => setSelectedTask(null)} onMove={onMove} />
+
+      <DiffPreviewModal
+        change={diffData ? { file: diffData.file, before: diffData.original, after: diffData.proposed } : null}
+        analytics={diffData?.analytics ?? null}
+        onClose={() => { setReviewTask(null); setDiffData(null) }}
+        onApprove={() => {
+          if (reviewTask) onApprove?.(reviewTask.id)
+          setReviewTask(null); setDiffData(null)
+        }}
+        onReject={() => {
+          if (reviewTask) onReject?.(reviewTask.id)
+          setReviewTask(null); setDiffData(null)
+        }}
+      />
     </>
   )
+}
+
+function sampleChangeFor(task: Task): FileChange {
+  return {
+    file: 'src/components/' + task.title.toLowerCase().replace(/\s+/g, '-') + '.tsx',
+    before: `export function ${task.title.replace(/\s+(.)/g, (_, c) => c.toUpperCase())}() {\n  return <div>Hello</div>\n}`,
+    after: `export function ${task.title.replace(/\s+(.)/g, (_, c) => c.toUpperCase())}() {\n  const [count, setCount] = useState(0)\n\n  return (\n    <div>\n      <p>Count: {count}</p>\n      <button onClick={() => setCount(c => c + 1)}>Increment</button>\n    </div>\n  )\n}`,
+  }
 }

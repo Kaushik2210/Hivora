@@ -34,11 +34,11 @@ interface AIModel  { id: string; name: string; provider: string; logo: string; s
 interface Project  { id: string; name: string }
 
 const SUPPORTED_MODELS: AIModel[] = [
-  { id: 'm1', name: 'Claude Opus 4',   provider: 'Anthropic', logo: '/logos/claude.svg',         status: 'available', color: '#D97757' },
-  { id: 'm2', name: 'Cursor Agent',    provider: 'Cursor',    logo: '/logos/cursor.svg',          status: 'available', color: '#3b82f6' },
-  { id: 'm3', name: 'GitHub Copilot',  provider: 'GitHub',    logo: '/logos/github-copilot.svg',  status: 'available', color: '#2563EB' },
-  { id: 'm4', name: 'Cline',           provider: 'Cline',     logo: '/logos/cline.svg',            status: 'available', color: '#22c55e' },
-  { id: 'm5', name: 'Devin',           provider: 'Cognition', logo: '/logos/devin.svg',            status: 'available', color: '#f59e0b' },
+  { id: 'm1', name: 'Claude Opus 4',   provider: 'Anthropic', logo: './logos/claude.svg',         status: 'available', color: '#D97757' },
+  { id: 'm2', name: 'Cursor Agent',    provider: 'Cursor',    logo: './logos/cursor.svg',          status: 'available', color: '#3b82f6' },
+  { id: 'm3', name: 'Copilot',  provider: 'GitHub',    logo: './logos/github-copilot.svg',  status: 'available', color: '#2563EB' },
+  { id: 'm4', name: 'Cline',           provider: 'Cline',     logo: './logos/cline.svg',            status: 'available', color: '#22c55e' },
+  { id: 'm5', name: 'Devin',           provider: 'Cognition', logo: './logos/devin.svg',            status: 'available', color: '#f59e0b' },
 ]
 
 const COLUMNS: { id: TaskStatus; label: string; dot: string }[] = [
@@ -61,9 +61,9 @@ const SAMPLE_TASKS: Task[] = [
 ]
 
 const SAMPLE_AGENTS: Agent[] = [
-  { id: 'a1', name: 'Claude',   tool: 'Claude Code',   logo: '/logos/claude.svg',         status: 'working', currentTask: 'Refactoring auth module', color: '#D97757' },
-  { id: 'a2', name: 'Cursor',   tool: 'Cursor Agent',  logo: '/logos/cursor.svg',          status: 'working', currentTask: 'Building dashboard UI',  color: '#8B5CF6' },
-  { id: 'a3', name: 'Copilot',  tool: 'GitHub Copilot', logo: '/logos/github-copilot.svg', status: 'idle',    currentTask: 'Configuring CI pipeline', color: '#8957E5' },
+  { id: 'a1', name: 'Claude',   tool: 'Claude Code',   logo: './logos/claude.svg',         status: 'working', currentTask: 'Refactoring auth module', color: '#D97757' },
+  { id: 'a2', name: 'Cursor',   tool: 'Cursor Agent',  logo: './logos/cursor.svg',          status: 'working', currentTask: 'Building dashboard UI',  color: '#8B5CF6' },
+  { id: 'a3', name: 'Copilot',  tool: 'Copilot', logo: './logos/github-copilot.svg', status: 'idle',    currentTask: 'Configuring CI pipeline', color: '#8957E5' },
 ]
 
 const SAMPLE_LOCKS: FileLock[] = [
@@ -190,9 +190,9 @@ export function App() {
           id: a.id,
           name: a.name,
           tool: a.type === 'ai' ? (a.provider || 'AI Agent') : 'Human Dev',
-          logo: a.name.toLowerCase().includes('claude') ? '/logos/claude.svg' :
-                a.name.toLowerCase().includes('cursor') ? '/logos/cursor.svg' :
-                '/logos/github-copilot.svg',
+          logo: a.name.toLowerCase().includes('claude') ? './logos/claude.svg' :
+                a.name.toLowerCase().includes('cursor') ? './logos/cursor.svg' :
+                './logos/github-copilot.svg',
           status: a.status === 'working' ? 'working' : 'idle',
           currentTask: a.currentTask || undefined,
           color: a.name.toLowerCase().includes('claude') ? '#D97757' : '#8B5CF6'
@@ -622,7 +622,7 @@ export function App() {
                     <span style={{ fontSize:10, fontWeight:600, color:C.textMut, textTransform:'uppercase', letterSpacing:'0.08em' }}>AI Providers</span>
                   </div>
                   <div style={{ display:'flex', flexDirection:'column', gap:5 }}>
-                    {[{name:'Anthropic',logo:'/logos/claude.svg'},{name:'GitHub',logo:'/logos/github-copilot.svg'},{name:'Cursor',logo:'/logos/cursor.svg'}].map(p => (
+                    {[{name:'Anthropic',logo:'./logos/claude.svg'},{name:'GitHub',logo:'./logos/github-copilot.svg'},{name:'Cursor',logo:'./logos/cursor.svg'}].map(p => (
                       <div key={p.name} style={{ display:'flex', alignItems:'center', gap:8, background:C.card, border:`1px solid ${C.muted}`, borderRadius:6, padding:'6px 8px' }}>
                         <img src={p.logo} style={{ width:16, height:16, borderRadius:4 }} alt={p.name} onError={e => { (e.currentTarget as HTMLImageElement).style.display='none' }} />
                         <span style={{ fontSize:11, color:C.textDim, flex:1 }}>{p.name}</span>

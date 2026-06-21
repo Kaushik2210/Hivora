@@ -8,6 +8,9 @@ import { requireOrgRole, resolveOrgFromProject } from '../middleware/orgGuard.js
 import { ok, fail } from '../utils/response.js';
 import type { RealtimeEvent } from '@hivora/shared';
 import type { IoServer } from '../realtime/index.js';
+import { GitService } from '../services/git.service.js';
+import fs from 'fs';
+import path from 'path';
 
 export function createProjectRouter(io: IoServer): Router {
   const router = Router();
@@ -169,6 +172,7 @@ export function createProjectRouter(io: IoServer): Router {
           type: a.type,
           status: a.status,
           provider: a.provider,
+          mode: a.mode,
           currentTask: a.currentTask,
           createdAt: a.createdAt.toISOString(),
         })),
@@ -193,12 +197,36 @@ export function createProjectRouter(io: IoServer): Router {
           type: agent.type,
           status: agent.status,
           provider: agent.provider,
+          mode: agent.mode,
           currentTask: agent.currentTask,
           createdAt: agent.createdAt.toISOString(),
         }));
       } catch {
         res.status(409).json(fail('AGENT_EXISTS', 'An agent with this name already exists in this project'));
       }
+    }),
+  );
+
+  router.patch(
+    '/projects/:projectId/agents/:id',
+    resolveOrgFromProject,
+    asyncHandler(async (req, res) => {
+      const { mode, status } = req.body;
+      const agent = await prisma.agent.update({
+        where: { id: req.params.id },
+        data: { mode, status },
+      });
+      res.json(ok({
+        id: agent.id,
+        projectId: agent.projectId,
+        name: agent.name,
+        type: agent.type,
+        status: agent.status,
+        provider: agent.provider,
+        mode: agent.mode,
+        currentTask: agent.currentTask,
+        createdAt: agent.createdAt.toISOString(),
+      }));
     }),
   );
 
@@ -332,6 +360,291 @@ export function createProjectRouter(io: IoServer): Router {
         assigneeId: updated.assigneeId,
         createdAt: updated.createdAt.toISOString(),
       }));
+    }),
+  );
+
+  router.get(
+    '/projects/:projectId/tasks/:id/diff',
+    resolveOrgFromProject,
+    asyncHandler(async (req, res) => {
+      const { projectId, id: taskId } = req.params;
+
+      const project = await prisma.project.findUnique({
+        where: { id: projectId },
+      });
+      if (!project) {
+        res.status(404).json(fail('PROJECT_NOT_FOUND', 'Project not found'));
+        return;
+      }
+
+      const task = await prisma.task.findUnique({
+        where: { id: taskId },
+      });
+      if (!task) {
+        res.status(404).json(fail('TASK_NOT_FOUND', 'Task not found'));
+        return;
+      }
+
+      const projectPath = project.path || process.cwd();
+      const pendingFilePath = path.join(projectPath, '.hivora', 'pending-tasks', `task-${taskId}.json`);
+
+      if (!fs.existsSync(pendingFilePath)) {
+        res.status(404).json(fail('PENDING_CHANGE_NOT_FOUND', 'No pending changes found for this task'));
+        return;
+      }
+
+      try {
+        const pendingData = JSON.parse(fs.readFileSync(pendingFilePath, 'utf8'));
+        const { file, proposedContent, agentId } = pendingData;
+        const fullFilePath = path.join(projectPath, file);
+        let originalContent = '';
+        if (fs.existsSync(fullFilePath)) {
+          originalContent = fs.readFileSync(fullFilePath, 'utf8');
+        }
+        res.json(ok({
+          file,
+          original: originalContent,
+          proposed: proposedContent,
+          agentId,
+          analytics: pendingData.analytics ?? null,
+          healingAttempts: pendingData.healingAttempts ?? [],
+        }));
+      } catch (err) {
+        console.error('[ProjectsRouter] Error reading diff:', err);
+        res.status(500).json(fail('DIFF_FAILED', err instanceof Error ? err.message : String(err)));
+      }
+    }),
+  );
+
+  router.post(
+    '/projects/:projectId/tasks/:id/approve',
+    resolveOrgFromProject,
+    asyncHandler(async (req, res) => {
+      const { projectId, id: taskId } = req.params;
+
+      const project = await prisma.project.findUnique({
+        where: { id: projectId },
+      });
+      if (!project) {
+        res.status(404).json(fail('PROJECT_NOT_FOUND', 'Project not found'));
+        return;
+      }
+
+      const task = await prisma.task.findUnique({
+        where: { id: taskId },
+      });
+      if (!task) {
+        res.status(404).json(fail('TASK_NOT_FOUND', 'Task not found'));
+        return;
+      }
+
+      const projectPath = project.path || process.cwd();
+      const pendingFilePath = path.join(projectPath, '.hivora', 'pending-tasks', `task-${taskId}.json`);
+
+      if (!fs.existsSync(pendingFilePath)) {
+        res.status(404).json(fail('PENDING_CHANGE_NOT_FOUND', 'No pending changes found for this task'));
+        return;
+      }
+
+      try {
+        const pendingData = JSON.parse(fs.readFileSync(pendingFilePath, 'utf8'));
+        const { file, proposedContent, agentId, lockId } = pendingData;
+
+        // Write the changes to the file
+        const fullFilePath = path.join(projectPath, file);
+        fs.mkdirSync(path.dirname(fullFilePath), { recursive: true });
+        fs.writeFileSync(fullFilePath, proposedContent, 'utf8');
+
+        // Commit and publish task changes to git
+        try {
+          GitService.commitAndPublishTask(projectPath, taskId, task.title);
+        } catch (gitErr) {
+          console.warn('[ProjectsRouter] Git operations failed:', gitErr);
+        }
+
+        // Clean up pending file
+        fs.unlinkSync(pendingFilePath);
+
+        // Calculate duration and cost
+        const duration = Math.max(1, Math.round((Date.now() - task.createdAt.getTime()) / 1000));
+        let cost = pendingData.analytics?.cost ?? 0.002; // Fallback for fast mode
+
+        // Update database
+        const updatedTask = await prisma.task.update({
+          where: { id: taskId },
+          data: { status: 'done', duration, cost },
+        });
+
+        // Set agent back to idle
+        let freeAgent = null;
+        if (agentId) {
+          freeAgent = await prisma.agent.update({
+            where: { id: agentId },
+            data: { status: 'idle', currentTask: null },
+          });
+        }
+
+        // Release lock
+        if (lockId) {
+          try {
+            await prisma.lock.delete({ where: { id: lockId } });
+          } catch (lockErr) {
+            console.warn('[ProjectsRouter] Lock delete failed:', lockErr);
+          }
+        }
+
+        // Emit realtime events
+        const taskEvent: RealtimeEvent = {
+          type: 'task:updated',
+          payload: { id: updatedTask.id, status: updatedTask.status, projectId: updatedTask.projectId },
+          organizationId: req.orgId ?? '',
+          projectId: projectId,
+        };
+        io.to(`project:${projectId}`).emit('event', taskEvent);
+
+        if (freeAgent) {
+          const agentEvent: RealtimeEvent = {
+            type: 'agent:updated',
+            payload: { agent: freeAgent },
+            organizationId: req.orgId ?? '',
+            projectId: projectId,
+          };
+          io.to(`project:${projectId}`).emit('event', agentEvent);
+        }
+
+        if (lockId) {
+          const lockEvent: RealtimeEvent = {
+            type: 'lock:released',
+            payload: { lockId },
+            organizationId: req.orgId ?? '',
+            projectId: projectId,
+          };
+          io.to(`project:${projectId}`).emit('event', lockEvent);
+        }
+
+        // Emit agent log event
+        const logEvent: RealtimeEvent = {
+          type: 'agent:log',
+          payload: { agentId, message: `Değişiklikler kullanıcı tarafından onaylandı, diske yazıldı ve commit edildi.`, timestamp: new Date().toISOString(), level: 'success' },
+          organizationId: req.orgId ?? '',
+          projectId: projectId,
+        };
+        io.to(`project:${projectId}`).emit('event', logEvent);
+
+        res.json(ok({ task: updatedTask }));
+      } catch (err) {
+        console.error('[ProjectsRouter] Error in task approval:', err);
+        res.status(500).json(fail('APPROVAL_FAILED', err instanceof Error ? err.message : String(err)));
+      }
+    }),
+  );
+
+  router.post(
+    '/projects/:projectId/tasks/:id/reject',
+    resolveOrgFromProject,
+    asyncHandler(async (req, res) => {
+      const { projectId, id: taskId } = req.params;
+
+      const project = await prisma.project.findUnique({
+        where: { id: projectId },
+      });
+      if (!project) {
+        res.status(404).json(fail('PROJECT_NOT_FOUND', 'Project not found'));
+        return;
+      }
+
+      const task = await prisma.task.findUnique({
+        where: { id: taskId },
+      });
+      if (!task) {
+        res.status(404).json(fail('TASK_NOT_FOUND', 'Task not found'));
+        return;
+      }
+
+      const projectPath = project.path || process.cwd();
+      const pendingFilePath = path.join(projectPath, '.hivora', 'pending-tasks', `task-${taskId}.json`);
+
+      let agentId = task.assigneeId;
+      let lockId = null;
+
+      if (fs.existsSync(pendingFilePath)) {
+        try {
+          const pendingData = JSON.parse(fs.readFileSync(pendingFilePath, 'utf8'));
+          agentId = pendingData.agentId || agentId;
+          lockId = pendingData.lockId;
+          fs.unlinkSync(pendingFilePath);
+        } catch (e) {
+          console.warn('[ProjectsRouter] Failed to parse or unlink pending task file:', e);
+        }
+      }
+
+      try {
+        // Reset task status to todo and unassign
+        const updatedTask = await prisma.task.update({
+          where: { id: taskId },
+          data: { status: 'todo', assigneeId: null },
+        });
+
+        // Set agent back to idle
+        let freeAgent = null;
+        if (agentId) {
+          freeAgent = await prisma.agent.update({
+            where: { id: agentId },
+            data: { status: 'idle', currentTask: null },
+          });
+        }
+
+        // Release lock
+        if (lockId) {
+          try {
+            await prisma.lock.delete({ where: { id: lockId } });
+          } catch (lockErr) {
+            console.warn('[ProjectsRouter] Lock delete failed:', lockErr);
+          }
+        } else {
+          // Fallback: Delete any locks for this agent
+          if (agentId) {
+            try {
+              await prisma.lock.deleteMany({
+                where: { projectId, agentId },
+              });
+            } catch (lockErr) {}
+          }
+        }
+
+        // Emit realtime events
+        const taskEvent: RealtimeEvent = {
+          type: 'task:updated',
+          payload: { id: updatedTask.id, status: updatedTask.status, projectId: updatedTask.projectId, assigneeId: null },
+          organizationId: req.orgId ?? '',
+          projectId: projectId,
+        };
+        io.to(`project:${projectId}`).emit('event', taskEvent);
+
+        if (freeAgent) {
+          const agentEvent: RealtimeEvent = {
+            type: 'agent:updated',
+            payload: { agent: freeAgent },
+            organizationId: req.orgId ?? '',
+            projectId: projectId,
+          };
+          io.to(`project:${projectId}`).emit('event', agentEvent);
+        }
+
+        // Emit agent log event
+        const logEvent: RealtimeEvent = {
+          type: 'agent:log',
+          payload: { agentId, message: `Değişiklikler kullanıcı tarafından reddedildi. Görev sıfırlandı.`, timestamp: new Date().toISOString(), level: 'warning' },
+          organizationId: req.orgId ?? '',
+          projectId: projectId,
+        };
+        io.to(`project:${projectId}`).emit('event', logEvent);
+
+        res.json(ok({ task: updatedTask }));
+      } catch (err) {
+        console.error('[ProjectsRouter] Error in task rejection:', err);
+        res.status(500).json(fail('REJECTION_FAILED', err instanceof Error ? err.message : String(err)));
+      }
     }),
   );
 

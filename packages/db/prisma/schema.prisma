@@ -12,7 +12,8 @@ model User {
   id            String         @id @default(cuid())
   email         String         @unique
   emailVerified Boolean        @default(false)
-  passwordHash  String
+  passwordHash  String         @default("")
+  githubId      String?        @unique
   name          String?
   avatarUrl     String?
   createdAt     DateTime       @default(now())
@@ -131,6 +132,7 @@ model Project {
 enum TaskStatus {
   todo
   doing
+  review_pending
   done
   conflict
 }
@@ -149,6 +151,8 @@ model Task {
   status      TaskStatus   @default(todo)
   priority    TaskPriority @default(medium)
   assigneeId  String?
+  duration    Int?
+  cost        Float?
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 
@@ -176,6 +180,7 @@ model Agent {
   type        AgentType
   status      AgentStatus @default(offline)
   provider    String?
+  mode        String      @default("thinking")
   currentTask String?
   createdAt   DateTime    @default(now())
 

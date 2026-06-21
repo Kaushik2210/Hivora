@@ -7,16 +7,16 @@ const platforms = [
   {
     name: 'Claude (Anthropic)',
     category: 'AI Agent',
-    icon: '🤖',
+    icon: <img src="/logos/claude.svg" alt="Claude" className="w-8 h-8 object-contain" />,
     status: 'beta',
     integration: 'API-based',
     description: 'Full symbol-level locking support with auto-coordination.',
     features: ['Real-time coordination', 'Symbol-level locks', 'Git integration', 'Type-aware locking'],
   },
   {
-    name: 'GitHub Copilot',
+    name: 'Copilot',
     category: 'VSCode Extension',
-    icon: '⚡',
+    icon: <img src="/logos/github-copilot.svg" alt="Copilot" className="w-8 h-8 object-contain" />,
     status: 'beta',
     integration: 'LSP Protocol',
     description: 'Seamless integration via VSCode extension. Native IDE experience.',
@@ -25,16 +25,16 @@ const platforms = [
   {
     name: 'Cursor',
     category: 'AI IDE',
-    icon: '✏️',
+    icon: <img src="/logos/cursor.svg" alt="Cursor" className="w-8 h-8 object-contain" />,
     status: 'beta',
     integration: 'Extension',
     description: 'Native Cursor integration for smooth multi-AI workflows.',
     features: ['Built-in agent detection', 'File-level awareness', 'Real-time sync', 'Agent switching'],
   },
   {
-    name: 'OpenAI API',
+    name: 'OpenAI',
     category: 'AI Service',
-    icon: '🔗',
+    icon: <img src="/logos/openai.svg" alt="OpenAI" className="w-8 h-8 object-contain bg-white rounded-md p-0.5" />,
     status: 'ready',
     integration: 'HTTP API',
     description: 'Direct integration for custom AI agents and workflows.',
@@ -43,7 +43,13 @@ const platforms = [
   {
     name: 'Git / GitHub / GitLab',
     category: 'VCS',
-    icon: '📦',
+    icon: (
+      <div className="flex gap-1 items-center">
+        <img src="/logos/git.svg" alt="Git" className="w-6 h-6 object-contain" />
+        <img src="/logos/github-white.svg" alt="GitHub" className="w-6 h-6 object-contain" />
+        <img src="/logos/gitlab.svg" alt="GitLab" className="w-6 h-6 object-contain" />
+      </div>
+    ),
     status: 'ready',
     integration: 'Native',
     description: 'Git-native workflows with automatic branch coordination.',
@@ -52,7 +58,7 @@ const platforms = [
   {
     name: 'VS Code',
     category: 'IDE',
-    icon: '💻',
+    icon: <img src="/logos/vscode.svg" alt="VS Code" className="w-8 h-8 object-contain" />,
     status: 'ready',
     integration: 'Extension',
     description: 'Full VSCode integration for local and remote development.',
@@ -61,7 +67,7 @@ const platforms = [
   {
     name: 'Docker',
     category: 'Deployment',
-    icon: '🐳',
+    icon: <img src="/logos/docker.svg" alt="Docker" className="w-8 h-8 object-contain" />,
     status: 'ready',
     integration: 'Container',
     description: 'Run Hivora orchestrator in Docker for team deployments.',
@@ -70,7 +76,7 @@ const platforms = [
   {
     name: 'PostgreSQL',
     category: 'Database',
-    icon: '🗄️',
+    icon: <img src="/logos/postgresql.svg" alt="PostgreSQL" className="w-8 h-8 object-contain" />,
     status: 'ready',
     integration: 'Native',
     description: 'Full database integration with automatic schema tracking.',
@@ -79,7 +85,7 @@ const platforms = [
   {
     name: 'Redis',
     category: 'Cache/Queue',
-    icon: '⚙️',
+    icon: <img src="/logos/redis.svg" alt="Redis" className="w-8 h-8 object-contain" />,
     status: 'ready',
     integration: 'Native',
     description: 'Real-time coordination and job queuing via Redis.',
@@ -120,7 +126,7 @@ export default function PlatformsPage() {
               {/* Header */}
               <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-2">
-                  <span className="text-3xl">{platform.icon}</span>
+                  <span className="flex items-center justify-center min-w-[2.5rem] h-10 shrink-0">{platform.icon}</span>
                   <div>
                     <h3 className="font-semibold text-sm">{platform.name}</h3>
                     <p className="text-xs text-[var(--color-text-muted)]">{platform.category}</p>

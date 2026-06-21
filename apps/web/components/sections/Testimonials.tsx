@@ -7,21 +7,21 @@ const testimonials = [
   {
     name: 'Alex Chen',
     role: 'Senior Developer @ TechCorp',
-    avatar: 'AC',
+    avatar: '/avatars/alex.png',
     content: 'Hivora lets me run 3 different AI agents in parallel on the same project. Symbol-level locking means zero conflicts. My workflow is 3x faster.',
     rating: 5,
   },
   {
     name: 'Sarah Johnson',
     role: 'CTO @ StartupX',
-    avatar: 'SJ',
+    avatar: '/avatars/sarah.png',
     content: 'Our team uses Claude and Cursor simultaneously. We couldn\'t be this productive without Hivora\'s Kanban board and real-time lock system.',
     rating: 5,
   },
   {
     name: 'Marcus Williams',
     role: 'Freelance Developer',
-    avatar: 'MW',
+    avatar: '/avatars/marcus.png',
     content: 'Local mode lets me work on sensitive projects without sending anything to the cloud. MCP protocol means I can swap agents freely. No vendor lock-in.',
     rating: 5,
   },
@@ -63,8 +63,8 @@ export function Testimonials() {
 
               {/* Author */}
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[var(--color-brand)] to-[var(--color-brand-light)] flex items-center justify-center text-white font-bold">
-                  {testimonial.avatar}
+                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[var(--color-brand)] to-[var(--color-brand-light)] flex items-center justify-center overflow-hidden border border-[var(--color-border)]">
+                  <img src={testimonial.avatar} alt={testimonial.name} className="w-full h-full object-cover" />
                 </div>
                 <div>
                   <div className="font-semibold">{testimonial.name}</div>

@@ -10,7 +10,7 @@ import {
 } from '@dnd-kit/core'
 import { Plus, Clock, User, Bot, AlertCircle, CheckCircle2, Circle, GripVertical } from 'lucide-react'
 
-export type TaskStatus = 'todo' | 'doing' | 'done' | 'conflict'
+export type TaskStatus = 'todo' | 'doing' | 'review_pending' | 'done' | 'conflict'
 
 export interface TaskItem {
   id: string
@@ -31,6 +31,7 @@ export interface KanbanBoardProps {
 const columns: { id: TaskStatus; title: string; icon: typeof Circle }[] = [
   { id: 'todo', title: 'To Do', icon: Circle },
   { id: 'doing', title: 'In Progress', icon: Clock },
+  { id: 'review_pending', title: 'Review Pending', icon: AlertCircle },
   { id: 'done', title: 'Done', icon: CheckCircle2 },
   { id: 'conflict', title: 'Conflict', icon: AlertCircle },
 ]

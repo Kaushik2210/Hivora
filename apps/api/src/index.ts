@@ -30,7 +30,33 @@ const app = express();
 const httpServer = http.createServer(app);
 const io = createRealtimeServer(httpServer);
 
-app.use(helmet());
+// Security headers — sıkılaştırılmış CSP
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc:    ["'self'"],
+      scriptSrc:     ["'self'"],
+      styleSrc:      ["'self'", "'unsafe-inline'"],
+      imgSrc:        ["'self'", 'data:', 'https:'],
+      connectSrc:    ["'self'", ...(config.corsOrigins ?? [])],
+      fontSrc:       ["'self'"],
+      objectSrc:     ["'none'"],
+      frameAncestors:["'none'"],
+      upgradeInsecureRequests: config.nodeEnv === 'production' ? [] : null,
+    },
+  },
+  hsts: config.nodeEnv === 'production'
+    ? { maxAge: 31536000, includeSubDomains: true, preload: true }
+    : false,
+  crossOriginEmbedderPolicy: false,
+}));
+
+// Permissions-Policy — kamera, mikrofon, konum erişimini engelle
+app.use((_req, res, next) => {
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=()')
+  next()
+})
+
 app.use(
   cors({
     origin: config.corsOrigins,
