@@ -6,31 +6,6 @@ on:
   pull_request:
     branches: [ main ]
 
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Use Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 18
-      - name: Install
-        run: npm ci
-      - name: Typecheck (workspaces)
-        run: npm run typecheck
-      - name: Orchestrator smoke tests
-        run: |
-          npm run --workspace @hivora/orchestrator test:locks
-          npm run --workspace @hivora/orchestrator test:worktree
-name: CI
-
-on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
-
 env:
   CI: true
 
@@ -45,6 +20,20 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run typecheck
+
+  test-orchestrator:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Orchestrator smoke tests
+        run: |
+          npm run --workspace @hivora/orchestrator test:locks
+          npm run --workspace @hivora/orchestrator test:worktree
 
   build-web:
     runs-on: ubuntu-latest
