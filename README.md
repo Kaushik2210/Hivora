@@ -186,11 +186,11 @@ Bu proje [Apache 2.0 Lisansı](./LICENSE) ile lisanslanmıştır. © 2024-2026 E
 
 *Not: Apache 2.0 Lisansı kodun açık kaynak kullanımını sağlarken "Hivora" ticari markasını ve ismini koruma altına alır.*
 
-## İletişim
+## İletişim & Topluluk
 
-- GitHub: [github.com/Enard52/Hivora](https://github.com/Enard52/Hivora)
-- Discord: [discord.gg/hivora](https://discord.gg/hivora)
-- Website: [hivora.dev](https://hivora.dev)
+- GitHub Repository: [github.com/Enard52/Hivora](https://github.com/Enard52/Hivora)
+- Issues & Hata Bildirimi: [github.com/Enard52/Hivora/issues](https://github.com/Enard52/Hivora/issues)
+- Geliştirici: [Ensar (@Enard52)](https://github.com/Enard52)
 
 ---
 
