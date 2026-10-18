@@ -27,10 +27,17 @@ export class GitWorktreeManager {
     }
   }
 
-  async removeWorktree(agentId: string): Promise<void> {
+  async removeWorktree(agentId: string, branchNameToDelete?: string): Promise<void> {
     const worktreePath = path.join(this.repoPath, '.worktrees', agentId);
     try {
       await execAsync(`git worktree remove --force "${worktreePath}"`, { cwd: this.repoPath });
+      if (branchNameToDelete) {
+        try {
+          await execAsync(`git branch -D "${branchNameToDelete}"`, { cwd: this.repoPath });
+        } catch {
+          // Ignore if branch was already merged or deleted
+        }
+      }
     } catch (error) {
       console.error('Failed to remove worktree:', error);
       throw error;

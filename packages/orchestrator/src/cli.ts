@@ -50,35 +50,37 @@ IDE Integration (MCP):
   process.exit(command === '--help' || command === '-h' ? 0 : 1);
 }
 
+import { localLockStore } from './lock/localLockStore.js';
+
 const apiBase = process.env.HIVORA_API ?? 'https://api.hivora.com';
 const token = process.env.HIVORA_TOKEN ?? '';
 const projectId = process.env.HIVORA_PROJECT ?? '';
 const agentId = process.env.HIVORA_AGENT ?? 'anonymous';
 
-if (!token) {
-  console.error('Error: HIVORA_TOKEN environment variable is required.');
-  console.error('  Get your token from https://app.hivora.com/settings');
+const isLocalMode = !token || !projectId || process.env.HIVORA_MODE === 'local';
+
+if (isLocalMode && command !== 'start') {
+  console.error('Error: Cloud synchronization commands require HIVORA_TOKEN and HIVORA_PROJECT.');
+  console.error('  For local development, use "npx @hivora/orchestrator start"');
   process.exit(1);
 }
 
-if (!projectId) {
-  console.error('Error: HIVORA_PROJECT environment variable is required.');
-  console.error('  Find your project ID in the project settings.');
-  process.exit(1);
-}
+const lockStore = isLocalMode
+  ? localLockStore
+  : new CloudLockStore({
+      apiBaseUrl: apiBase,
+      projectId,
+      getAccessToken: () => token,
+    });
 
-const lockStore = new CloudLockStore({
-  apiBaseUrl: apiBase,
-  projectId,
-  getAccessToken: () => token,
-});
-
-const taskClient = new HivoraTaskClient({
-  apiBase,
-  token,
-  projectId,
-  agentId,
-});
+const taskClient = isLocalMode
+  ? undefined
+  : new HivoraTaskClient({
+      apiBase,
+      token,
+      projectId,
+      agentId,
+    });
 
 // Helper for diff generation
 function diffLines(oldStr: string, newStr: string): { type: 'added' | 'removed' | 'unchanged', text: string }[] {

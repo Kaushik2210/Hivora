@@ -1,5 +1,11 @@
 # Hivora - Multi-AI Orchestrator Platform
 
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](./LICENSE)
+[![Status: Beta](https://img.shields.io/badge/Status-Beta%20%2F%20Active%20Development-orange.svg)](#)
+[![Sponsor](https://img.shields.io/badge/Sponsor-%E2%9D%A4-ea4aaa?style=flat&logo=githubsponsors)](https://github.com/sponsors/Enard52)
+
+> ⚠️ **Status: Active Beta Development** — We are actively welcoming community contributions, bug reports, and feedback! Check our [Issues](https://github.com/Enard52/Hivora/issues) tab for `good first issue` and `help wanted` tasks.
+
 **Ücretsiz & Açık Kaynak İnsan-AI İşbirliği Ortamı**
 
 Hivora, aynı proje üzerinde çalışan birden fazla insan geliştirici ve birden fazla AI aracını (Cursor, Claude Code, GitHub Copilot, vb.) tek bir merkezi koordinasyon katmanı altında bir araya getiren platformdur.
@@ -176,7 +182,9 @@ MCP server `stdio` üzerinden çalışır ve şu tool'ları sunar:
 
 ## Lisans
 
-[MIT](LICENSE) © 2024 Hivora
+Bu proje [Apache 2.0 Lisansı](./LICENSE) ile lisanslanmıştır. © 2024-2026 Ensar (Hivora). 
+
+*Not: Apache 2.0 Lisansı kodun açık kaynak kullanımını sağlarken "Hivora" ticari markasını ve ismini koruma altına alır.*
 
 ## İletişim
 

@@ -52,15 +52,19 @@ export async function applyChangeWithLock(opts: {
     // 5) git add & commit inside worktree
     await exec(`git add --all`, { cwd: wtPath })
     const commitMsg = `agent(${agentId}): edit ${file} [symbol=${symbol}]`
-    await exec(`git commit -m "${commitMsg}" || true`, { cwd: wtPath })
+    try {
+      await exec(`git commit -m "${commitMsg}"`, { cwd: wtPath })
+    } catch {
+      // Ignore if there is nothing new to commit
+    }
     // get last commit hash
     const { stdout } = await exec('git rev-parse --short HEAD', { cwd: wtPath })
     const hash = stdout.trim()
 
     // 6) optionally push/merge strategy is left to operator
 
-    // 7) cleanup worktree
-    await worktree.removeWorktree(agentKey)
+    // 7) cleanup worktree & branch
+    await worktree.removeWorktree(agentKey, branchName)
     // 8) unlock
     await lockStore.unlock(file, symbol, agentId)
 
@@ -68,7 +72,7 @@ export async function applyChangeWithLock(opts: {
   } catch (err: any) {
     try {
       if (created) {
-        await worktree.removeWorktree(agentKey)
+        await worktree.removeWorktree(agentKey, branchName)
       }
     } catch (e) {
       // ignore
